@@ -1,0 +1,72 @@
+databaseChangeLog:
+  - changeSet:
+      id: catalog-001-sports
+      author: gymbro
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE sports (
+                  id   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                  name VARCHAR(100) NOT NULL,
+                  CONSTRAINT sports_name_unique UNIQUE (name)
+              )
+      rollback:
+        - sql:
+            sql: DROP TABLE sports
+
+  - changeSet:
+      id: catalog-002-gyms
+      author: gymbro
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE gyms (
+                  id      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                  name    VARCHAR(200) NOT NULL,
+                  city    VARCHAR(100) NOT NULL,
+                  address VARCHAR(300) NOT NULL,
+                  CONSTRAINT gyms_address_unique UNIQUE (city, address)
+              )
+      rollback:
+        - sql:
+            sql: DROP TABLE gyms
+
+  - changeSet:
+      id: catalog-003-gym-requests
+      author: gymbro
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE gym_requests (
+                  id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                  author_id   BIGINT       NOT NULL REFERENCES users (id),
+                  name        VARCHAR(200) NOT NULL,
+                  city        VARCHAR(100) NOT NULL,
+                  address     VARCHAR(300) NOT NULL,
+                  status      VARCHAR(16)  NOT NULL DEFAULT 'PENDING',
+                  reviewed_by BIGINT       REFERENCES users (id),
+                  gym_id      BIGINT       REFERENCES gyms (id),
+                  created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
+                  CONSTRAINT gym_requests_status_check
+                      CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
+                  CONSTRAINT gym_requests_approved_has_gym
+                      CHECK (status <> 'APPROVED' OR gym_id IS NOT NULL)
+              );
+              CREATE INDEX gym_requests_status_idx ON gym_requests (status, created_at DESC);
+      rollback:
+        - sql:
+            sql: DROP TABLE gym_requests
+
+  - changeSet:
+      id: catalog-004-seed-sports
+      author: gymbro
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO sports (name) VALUES
+                  ('Тренажёрный зал'), ('Бег'), ('Плавание'), ('Йога'),
+                  ('Кроссфит'), ('Бокс'), ('Велоспорт'), ('Скалолазание'),
+                  ('Теннис'), ('Волейбол')
+      rollback:
+        - sql:
+            sql: DELETE FROM sports

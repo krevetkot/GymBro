@@ -1,0 +1,55 @@
+databaseChangeLog:
+  - changeSet:
+      id: profile-001-user-photos
+      author: gymbro
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE user_photos (
+                  id       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                  user_id  BIGINT       NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+                  url      VARCHAR(500) NOT NULL,
+                  position SMALLINT     NOT NULL,
+                  CONSTRAINT user_photos_position_unique UNIQUE (user_id, position),
+                  CONSTRAINT user_photos_position_range  CHECK (position BETWEEN 0 AND 9)
+              )
+      rollback:
+        - sql:
+            sql: DROP TABLE user_photos
+
+  - changeSet:
+      id: profile-002-user-sports
+      author: gymbro
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE user_sports (
+                  id       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                  user_id  BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+                  sport_id BIGINT      NOT NULL REFERENCES sports (id),
+                  level    VARCHAR(16) NOT NULL,
+                  CONSTRAINT user_sports_unique UNIQUE (user_id, sport_id),
+                  CONSTRAINT user_sports_level_check
+                      CHECK (level IN ('BEGINNER', 'INTERMEDIATE', 'ADVANCED'))
+              );
+              CREATE INDEX user_sports_sport_idx ON user_sports (sport_id);
+      rollback:
+        - sql:
+            sql: DROP TABLE user_sports
+
+  - changeSet:
+      id: profile-003-user-gyms
+      author: gymbro
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE user_gyms (
+                  id      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                  user_id BIGINT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+                  gym_id  BIGINT NOT NULL REFERENCES gyms (id),
+                  CONSTRAINT user_gyms_unique UNIQUE (user_id, gym_id)
+              );
+              CREATE INDEX user_gyms_gym_idx ON user_gyms (gym_id);
+      rollback:
+        - sql:
+            sql: DROP TABLE user_gyms
