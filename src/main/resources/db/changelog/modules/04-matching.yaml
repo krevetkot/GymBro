@@ -1,0 +1,38 @@
+databaseChangeLog:
+  - changeSet:
+      id: matching-001-likes
+      author: gymbro
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE likes (
+                  id           BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                  from_user_id BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+                  to_user_id   BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+                  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+                  CONSTRAINT likes_unique   UNIQUE (from_user_id, to_user_id),
+                  CONSTRAINT likes_not_self CHECK (from_user_id <> to_user_id)
+              );
+              CREATE INDEX likes_to_user_idx ON likes (to_user_id);
+      rollback:
+        - sql:
+            sql: DROP TABLE likes
+
+  - changeSet:
+      id: matching-002-matches
+      author: gymbro
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE matches (
+                  id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                  user1_id   BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+                  user2_id   BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+                  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                  CONSTRAINT matches_unique UNIQUE (user1_id, user2_id),
+                  CONSTRAINT matches_order  CHECK (user1_id < user2_id)
+              );
+              CREATE INDEX matches_user2_idx ON matches (user2_id);
+      rollback:
+        - sql:
+            sql: DROP TABLE matches

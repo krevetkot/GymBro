@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: gymbro-db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-gymbro}
+      POSTGRES_USER: ${DB_USER:-gymbro}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-gymbro}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-gymbro} -d ${DB_NAME:-gymbro}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: gymbro-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-gymbro}
+      DB_USER: ${DB_USER:-gymbro}
+      DB_PASSWORD: ${DB_PASSWORD:-gymbro}
+      APP_PORT: 8080
+      SQL_LOG_LEVEL: ${SQL_LOG_LEVEL:-INFO}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+
+volumes:
+  pgdata:
