@@ -1,10 +1,15 @@
 package ru.itmo.gymbro.catalog.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+
 import java.time.Instant;
 import java.util.Objects;
 
+@Table("gym_requests")
 public class GymRequest {
 
+    @Id
     private Long id;
     private long authorId;
     private String name;

@@ -1,10 +1,15 @@
 package ru.itmo.gymbro.identity.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+
 import java.time.Instant;
 import java.util.Objects;
 
+@Table("users")
 public class User {
 
+    @Id
     private Long id;
     private String email;
     private String passwordHash;

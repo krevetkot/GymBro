@@ -1,10 +1,15 @@
 package ru.itmo.gymbro.matching.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+
 import java.time.Instant;
 import java.util.Objects;
 
+@Table("likes")
 public class Like {
 
+    @Id
     private Long id;
     private long fromUserId;
     private long toUserId;

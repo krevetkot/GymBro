@@ -1,9 +1,14 @@
 package ru.itmo.gymbro.catalog.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+
 import java.util.Objects;
 
+@Table("gyms")
 public class Gym {
 
+    @Id
     private Long id;
     private String name;
     private String city;

@@ -1,10 +1,15 @@
 package ru.itmo.gymbro.matching.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+
 import java.time.Instant;
 import java.util.Objects;
 
+@Table("matches")
 public class Match {
 
+    @Id
     private Long id;
     private long user1Id;
     private long user2Id;

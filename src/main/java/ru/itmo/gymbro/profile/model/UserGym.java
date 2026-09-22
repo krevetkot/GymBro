@@ -1,9 +1,14 @@
 package ru.itmo.gymbro.profile.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+
 import java.util.Objects;
 
+@Table("user_gyms")
 public class UserGym {
 
+    @Id
     private Long id;
     private long gymId;
 

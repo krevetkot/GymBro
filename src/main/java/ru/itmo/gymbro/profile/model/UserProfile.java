@@ -1,5 +1,9 @@
 package ru.itmo.gymbro.profile.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.MappedCollection;
+import org.springframework.data.relational.core.mapping.Table;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
@@ -11,23 +15,32 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+@Table("user_profiles")
 public class UserProfile {
 
     public static final int MAX_PHOTOS = 10;
 
+    @Id
     private Long id;
     private long userId;
     private String name;
     private LocalDate birthDate;
     private String about;
+
+    @MappedCollection(idColumn = "profile_id", keyColumn = "position")
     private List<UserPhoto> photos;
+
+    @MappedCollection(idColumn = "profile_id")
     private Set<UserSport> sports;
+
+    @MappedCollection(idColumn = "profile_id")
     private Set<UserGym> gyms;
+
     private Instant updatedAt;
 
     public UserProfile(Long id, long userId, String name, LocalDate birthDate, String about,
-                       Collection<UserPhoto> photos, Collection<UserSport> sports,
-                       Collection<UserGym> gyms, Instant updatedAt) {
+                       List<UserPhoto> photos, Set<UserSport> sports, Set<UserGym> gyms,
+                       Instant updatedAt) {
         if (userId <= 0) {
             throw new IllegalArgumentException("Профиль должен быть привязан к пользователю");
         }
@@ -37,8 +50,8 @@ public class UserProfile {
         this.birthDate = checkBirthDate(birthDate);
         this.about = normalizeAbout(about);
         this.photos = checkPhotos(photos);
-        this.sports = new LinkedHashSet<>(sports == null ? List.of() : sports);
-        this.gyms = new LinkedHashSet<>(gyms == null ? List.of() : gyms);
+        this.sports = new LinkedHashSet<>(sports == null ? Set.of() : sports);
+        this.gyms = new LinkedHashSet<>(gyms == null ? Set.of() : gyms);
         this.updatedAt = updatedAt == null ? Instant.now() : updatedAt;
     }
 
@@ -55,12 +68,12 @@ public class UserProfile {
     }
 
     public void replaceSports(Collection<UserSport> newSports) {
-        this.sports = new LinkedHashSet<>(newSports == null ? List.of() : newSports);
+        this.sports = new LinkedHashSet<>(newSports == null ? Set.of() : newSports);
         touch();
     }
 
     public void replaceGyms(Collection<UserGym> newGyms) {
-        this.gyms = new LinkedHashSet<>(newGyms == null ? List.of() : newGyms);
+        this.gyms = new LinkedHashSet<>(newGyms == null ? Set.of() : newGyms);
         touch();
     }
 
@@ -68,18 +81,19 @@ public class UserProfile {
         if (photos.size() >= MAX_PHOTOS) {
             throw new IllegalStateException("Достигнут предел в " + MAX_PHOTOS + " фотографий");
         }
-        photos.add(UserPhoto.at(url, photos.size()));
+        UserPhoto photo = UserPhoto.of(url);
+        if (photos.contains(photo)) {
+            throw new IllegalArgumentException("Такая фотография уже есть в анкете");
+        }
+        photos.add(photo);
         touch();
     }
 
-    public void removePhoto(long photoId) {
-        boolean removed = photos.removeIf(photo -> photo.getId() != null && photo.getId() == photoId);
-        if (!removed) {
-            throw new IllegalArgumentException("Фотография не найдена в анкете");
+    public void removePhoto(int position) {
+        if (position < 0 || position >= photos.size()) {
+            throw new IllegalArgumentException("Фотографии с такой позицией нет в анкете");
         }
-        for (int position = 0; position < photos.size(); position++) {
-            photos.get(position).moveTo(position);
-        }
+        photos.remove(position);
         touch();
     }
 
@@ -152,14 +166,13 @@ public class UserProfile {
         return (value == null || value.isBlank()) ? null : value.trim();
     }
 
-    private static List<UserPhoto> checkPhotos(Collection<UserPhoto> value) {
+    private static List<UserPhoto> checkPhotos(List<UserPhoto> value) {
         List<UserPhoto> result = new ArrayList<>(value == null ? List.of() : value);
         if (result.size() > MAX_PHOTOS) {
             throw new IllegalArgumentException("Не больше " + MAX_PHOTOS + " фотографий в анкете");
         }
-        long distinctPositions = result.stream().map(UserPhoto::getPosition).distinct().count();
-        if (distinctPositions != result.size()) {
-            throw new IllegalArgumentException("Позиции фотографий не должны повторяться");
+        if (result.stream().distinct().count() != result.size()) {
+            throw new IllegalArgumentException("Фотографии в анкете не должны повторяться");
         }
         return result;
     }
