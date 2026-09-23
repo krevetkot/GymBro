@@ -1,5 +1,7 @@
 package ru.itmo.gymbro.profile.model;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -10,7 +12,11 @@ public class UserSport {
 
     @Id
     private Long id;
+
+    @Positive
     private long sportId;
+
+    @NotNull
     private SportLevel level;
 
     public UserSport(Long id, long sportId, SportLevel level) {

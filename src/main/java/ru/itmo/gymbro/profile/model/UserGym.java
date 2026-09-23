@@ -1,5 +1,6 @@
 package ru.itmo.gymbro.profile.model;
 
+import jakarta.validation.constraints.Positive;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -10,6 +11,8 @@ public class UserGym {
 
     @Id
     private Long id;
+
+    @Positive
     private long gymId;
 
     public UserGym(Long id, long gymId) {

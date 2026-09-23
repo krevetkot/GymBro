@@ -1,5 +1,7 @@
 package ru.itmo.gymbro.profile.model;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -10,6 +12,9 @@ public class UserPhoto {
 
     @Id
     private Long id;
+
+    @NotBlank
+    @Size(max = 500)
     private String url;
 
     public UserPhoto(Long id, String url) {

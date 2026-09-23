@@ -1,5 +1,7 @@
 package ru.itmo.gymbro.matching.model;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -11,8 +13,14 @@ public class Match {
 
     @Id
     private Long id;
+
+    @Positive
     private long user1Id;
+
+    @Positive
     private long user2Id;
+
+    @NotNull
     private Instant createdAt;
 
     public Match(Long id, long user1Id, long user2Id, Instant createdAt) {

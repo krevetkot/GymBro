@@ -1,5 +1,7 @@
 package ru.itmo.gymbro.catalog.model;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -10,6 +12,9 @@ public class Sport {
 
     @Id
     private Long id;
+
+    @NotBlank
+    @Size(max = 100)
     private String name;
 
     public Sport(Long id, String name) {

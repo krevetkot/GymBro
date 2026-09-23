@@ -1,5 +1,9 @@
 package ru.itmo.gymbro.catalog.model;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -11,13 +15,32 @@ public class GymRequest {
 
     @Id
     private Long id;
+
+    @Positive
     private long authorId;
+
+    @NotBlank
+    @Size(max = 200)
     private String name;
+
+    @NotBlank
+    @Size(max = 100)
     private String city;
+
+    @NotBlank
+    @Size(max = 300)
     private String address;
+
+    @NotNull
     private RequestStatus status;
+
+    @Positive
     private Long reviewedBy;
+
+    @Positive
     private Long gymId;
+
+    @NotNull
     private Instant createdAt;
 
     public GymRequest(Long id, long authorId, String name, String city, String address,

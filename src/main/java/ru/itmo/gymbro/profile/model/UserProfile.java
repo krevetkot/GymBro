@@ -1,5 +1,11 @@
 package ru.itmo.gymbro.profile.model;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.MappedCollection;
 import org.springframework.data.relational.core.mapping.Table;
@@ -22,20 +28,37 @@ public class UserProfile {
 
     @Id
     private Long id;
+
+    @Positive
     private long userId;
+
+    @NotBlank
+    @Size(max = 100)
     private String name;
+
+    @NotNull
+    @Past
     private LocalDate birthDate;
+
     private String about;
 
+    @Valid
+    @NotNull
+    @Size(max = MAX_PHOTOS)
     @MappedCollection(idColumn = "profile_id", keyColumn = "position")
     private List<UserPhoto> photos;
 
+    @Valid
+    @NotNull
     @MappedCollection(idColumn = "profile_id")
     private Set<UserSport> sports;
 
+    @Valid
+    @NotNull
     @MappedCollection(idColumn = "profile_id")
     private Set<UserGym> gyms;
 
+    @NotNull
     private Instant updatedAt;
 
     public UserProfile(Long id, long userId, String name, LocalDate birthDate, String about,

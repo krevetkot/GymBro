@@ -1,5 +1,7 @@
 package ru.itmo.gymbro.catalog.model;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -10,8 +12,17 @@ public class Gym {
 
     @Id
     private Long id;
+
+    @NotBlank
+    @Size(max = 200)
     private String name;
+
+    @NotBlank
+    @Size(max = 100)
     private String city;
+
+    @NotBlank
+    @Size(max = 300)
     private String address;
 
     public Gym(Long id, String name, String city, String address) {

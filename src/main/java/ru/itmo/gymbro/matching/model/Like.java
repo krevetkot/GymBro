@@ -1,5 +1,7 @@
 package ru.itmo.gymbro.matching.model;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -11,8 +13,14 @@ public class Like {
 
     @Id
     private Long id;
+
+    @Positive
     private long fromUserId;
+
+    @Positive
     private long toUserId;
+
+    @NotNull
     private Instant createdAt;
 
     public Like(Long id, long fromUserId, long toUserId, Instant createdAt) {

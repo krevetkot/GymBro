@@ -1,5 +1,9 @@
 package ru.itmo.gymbro.identity.model;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -11,10 +15,23 @@ public class User {
 
     @Id
     private Long id;
+
+    @NotBlank
+    @Email
+    @Size(max = 255)
     private String email;
+
+    @NotBlank
+    @Size(max = 255)
     private String passwordHash;
+
+    @NotNull
     private Role role;
+
+    @NotNull
     private UserStatus status;
+
+    @NotNull
     private Instant createdAt;
 
     public User(Long id, String email, String passwordHash, Role role, UserStatus status, Instant createdAt) {
