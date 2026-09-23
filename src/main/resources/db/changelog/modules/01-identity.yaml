@@ -9,15 +9,12 @@ databaseChangeLog:
                   id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                   email         VARCHAR(255) NOT NULL,
                   password_hash VARCHAR(255) NOT NULL,
-                  name          VARCHAR(100) NOT NULL,
-                  birth_date    DATE         NOT NULL,
-                  about         TEXT,
                   role          VARCHAR(16)  NOT NULL DEFAULT 'USER',
                   status        VARCHAR(16)  NOT NULL DEFAULT 'ACTIVE',
                   created_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
-                  CONSTRAINT users_email_unique  UNIQUE (email),
-                  CONSTRAINT users_role_check    CHECK (role IN ('USER', 'TRAINER', 'ADMIN')),
-                  CONSTRAINT users_status_check  CHECK (status IN ('ACTIVE', 'BANNED'))
+                  CONSTRAINT users_email_unique UNIQUE (email),
+                  CONSTRAINT users_role_check   CHECK (role IN ('USER', 'TRAINER', 'ADMIN')),
+                  CONSTRAINT users_status_check CHECK (status IN ('ACTIVE', 'BANNED'))
               )
       rollback:
         - sql:
