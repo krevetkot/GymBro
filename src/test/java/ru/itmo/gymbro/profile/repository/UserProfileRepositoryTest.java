@@ -12,7 +12,6 @@ import ru.itmo.gymbro.identity.model.User;
 import ru.itmo.gymbro.identity.repository.UserRepository;
 import ru.itmo.gymbro.profile.model.SportLevel;
 import ru.itmo.gymbro.profile.model.UserGym;
-import ru.itmo.gymbro.profile.model.UserPhoto;
 import ru.itmo.gymbro.profile.model.UserProfile;
 import ru.itmo.gymbro.profile.model.UserSport;
 
@@ -36,15 +35,13 @@ class UserProfileRepositoryTest extends AbstractIntegrationTest {
     private GymRepository gyms;
 
     @Test
-    @DisplayName("Анкета сохраняется вместе с фото, видами спорта и залами")
+    @DisplayName("Анкета сохраняется вместе с видами спорта и залами")
     void savesWholeAggregate() {
         long userId = newUser("profile1@mail.ru");
         long sportId = newSport("Бадминтон");
         long gymId = newGym("Тверская, 1");
 
         UserProfile profile = UserProfile.create(userId, "Ксения", LocalDate.of(2003, 5, 17), "люблю бегать");
-        profile.addPhoto("https://cdn/1.jpg");
-        profile.addPhoto("https://cdn/2.jpg");
         profile.replaceSports(Set.of(UserSport.of(sportId, SportLevel.BEGINNER)));
         profile.replaceGyms(Set.of(UserGym.of(gymId)));
 
@@ -55,8 +52,6 @@ class UserProfileRepositoryTest extends AbstractIntegrationTest {
         assertThat(reloaded.getName()).isEqualTo("Ксения");
         assertThat(reloaded.getBirthDate()).isEqualTo(LocalDate.of(2003, 5, 17));
         assertThat(reloaded.getAbout()).isEqualTo("люблю бегать");
-        assertThat(reloaded.getPhotos()).extracting(UserPhoto::getUrl)
-                .containsExactly("https://cdn/1.jpg", "https://cdn/2.jpg");
         assertThat(reloaded.getSports()).extracting(UserSport::getSportId).containsExactly(sportId);
         assertThat(reloaded.getSports().iterator().next().getLevel()).isEqualTo(SportLevel.BEGINNER);
         assertThat(reloaded.getGyms()).extracting(UserGym::getGymId).containsExactly(gymId);
@@ -82,31 +77,12 @@ class UserProfileRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Удаление фотографии сдвигает порядок оставшихся")
-    void removesPhotoAndKeepsOrder() {
-        long userId = newUser("profile3@mail.ru");
-
-        UserProfile profile = UserProfile.create(userId, "Борис", LocalDate.of(1999, 3, 3), null);
-        profile.addPhoto("https://cdn/a.jpg");
-        profile.addPhoto("https://cdn/b.jpg");
-        profile.addPhoto("https://cdn/c.jpg");
-        profiles.save(profile);
-
-        UserProfile stored = profiles.findByUserId(userId).orElseThrow();
-        stored.removePhoto(1);
-        profiles.save(stored);
-
-        UserProfile reloaded = profiles.findByUserId(userId).orElseThrow();
-        assertThat(reloaded.getPhotos()).extracting(UserPhoto::getUrl)
-                .containsExactly("https://cdn/a.jpg", "https://cdn/c.jpg");
-    }
-
-    @Test
     @DisplayName("Анкета удаляется вместе с детьми")
     void deletesProfile() {
         long userId = newUser("profile4@mail.ru");
+        long sportId = newSport("Керлинг");
         UserProfile profile = UserProfile.create(userId, "Вера", LocalDate.of(1998, 7, 7), null);
-        profile.addPhoto("https://cdn/v.jpg");
+        profile.replaceSports(Set.of(UserSport.of(sportId, SportLevel.INTERMEDIATE)));
         profiles.save(profile);
 
         profiles.deleteByUserId(userId);

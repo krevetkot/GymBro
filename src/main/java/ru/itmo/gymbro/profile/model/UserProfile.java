@@ -13,18 +13,14 @@ import org.springframework.data.relational.core.mapping.Table;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
 @Table("user_profiles")
 public class UserProfile {
-
-    public static final int MAX_PHOTOS = 10;
 
     @Id
     private Long id;
@@ -44,12 +40,6 @@ public class UserProfile {
 
     @Valid
     @NotNull
-    @Size(max = MAX_PHOTOS)
-    @MappedCollection(idColumn = "profile_id", keyColumn = "position")
-    private List<UserPhoto> photos;
-
-    @Valid
-    @NotNull
     @MappedCollection(idColumn = "profile_id")
     private Set<UserSport> sports;
 
@@ -62,8 +52,7 @@ public class UserProfile {
     private Instant updatedAt;
 
     public UserProfile(Long id, long userId, String name, LocalDate birthDate, String about,
-                       List<UserPhoto> photos, Set<UserSport> sports, Set<UserGym> gyms,
-                       Instant updatedAt) {
+                       Set<UserSport> sports, Set<UserGym> gyms, Instant updatedAt) {
         if (userId <= 0) {
             throw new IllegalArgumentException("Профиль должен быть привязан к пользователю");
         }
@@ -72,15 +61,13 @@ public class UserProfile {
         this.name = checkName(name);
         this.birthDate = checkBirthDate(birthDate);
         this.about = normalizeAbout(about);
-        this.photos = checkPhotos(photos);
         this.sports = new LinkedHashSet<>(sports == null ? Set.of() : sports);
         this.gyms = new LinkedHashSet<>(gyms == null ? Set.of() : gyms);
         this.updatedAt = updatedAt == null ? Instant.now() : updatedAt;
     }
 
     public static UserProfile create(long userId, String name, LocalDate birthDate, String about) {
-        return new UserProfile(null, userId, name, birthDate, about,
-                List.of(), Set.of(), Set.of(), Instant.now());
+        return new UserProfile(null, userId, name, birthDate, about, Set.of(), Set.of(), Instant.now());
     }
 
     public void edit(String newName, LocalDate newBirthDate, String newAbout) {
@@ -97,26 +84,6 @@ public class UserProfile {
 
     public void replaceGyms(Collection<UserGym> newGyms) {
         this.gyms = new LinkedHashSet<>(newGyms == null ? Set.of() : newGyms);
-        touch();
-    }
-
-    public void addPhoto(String url) {
-        if (photos.size() >= MAX_PHOTOS) {
-            throw new IllegalStateException("Достигнут предел в " + MAX_PHOTOS + " фотографий");
-        }
-        UserPhoto photo = UserPhoto.of(url);
-        if (photos.contains(photo)) {
-            throw new IllegalArgumentException("Такая фотография уже есть в анкете");
-        }
-        photos.add(photo);
-        touch();
-    }
-
-    public void removePhoto(int position) {
-        if (position < 0 || position >= photos.size()) {
-            throw new IllegalArgumentException("Фотографии с такой позицией нет в анкете");
-        }
-        photos.remove(position);
         touch();
     }
 
@@ -146,10 +113,6 @@ public class UserProfile {
 
     public String getAbout() {
         return about;
-    }
-
-    public List<UserPhoto> getPhotos() {
-        return Collections.unmodifiableList(photos);
     }
 
     public Set<UserSport> getSports() {
@@ -187,17 +150,6 @@ public class UserProfile {
 
     private static String normalizeAbout(String value) {
         return (value == null || value.isBlank()) ? null : value.trim();
-    }
-
-    private static List<UserPhoto> checkPhotos(List<UserPhoto> value) {
-        List<UserPhoto> result = new ArrayList<>(value == null ? List.of() : value);
-        if (result.size() > MAX_PHOTOS) {
-            throw new IllegalArgumentException("Не больше " + MAX_PHOTOS + " фотографий в анкете");
-        }
-        if (result.stream().distinct().count() != result.size()) {
-            throw new IllegalArgumentException("Фотографии в анкете не должны повторяться");
-        }
-        return result;
     }
 
     @Override
