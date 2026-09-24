@@ -40,9 +40,12 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -171,6 +174,41 @@ class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
             assertThat(request.getGymId()).isNull();
             assertThat(newGymCount()).isZero();
         });
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"approve", "reject"})
+    void rollsBackPersistedDecisionAndAllowsRetry(String operation) throws Exception {
+        AtomicBoolean decisionWritten = new AtomicBoolean();
+        doAnswer(invocation -> {
+            invocation.callRealMethod();
+            String storedStatus = jdbc.queryForObject(
+                    "SELECT status FROM gym_requests WHERE id = ?", String.class, requestId);
+            assertThat(storedStatus).isEqualTo(operation.equals("approve") ? "APPROVED" : "REJECTED");
+            decisionWritten.set(true);
+            throw new DataAccessResourceFailureException("Injected failure after decision was written");
+        }).when(requests).save(any(GymRequest.class));
+
+        mvc.perform(post(action(requestId, operation)).header("X-User-Id", adminId))
+                .andExpect(status().isInternalServerError());
+        assertThat(decisionWritten).isTrue();
+
+        transaction.executeWithoutResult(status -> {
+            GymRequest stored = requests.findById(requestId).orElseThrow();
+            assertThat(stored.getStatus()).isEqualTo(RequestStatus.PENDING);
+            assertThat(stored.getReviewedBy()).isNull();
+            assertThat(stored.getGymId()).isNull();
+            assertThat(newGymCount()).isZero();
+            assertThat(profiles.findByUserId(authorId).orElseThrow().getGyms())
+                    .extracting(UserGym::getGymId).containsExactly(existingGymId);
+        });
+
+        doCallRealMethod().when(requests).save(any(GymRequest.class));
+        mvc.perform(post(action(requestId, operation)).header("X-User-Id", adminId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(operation.equals("approve") ? "APPROVED" : "REJECTED"))
+                .andExpect(jsonPath("$.reviewedBy").value(adminId));
+        assertThat(newGymCount()).isEqualTo(operation.equals("approve") ? 1 : 0);
     }
 
     @ParameterizedTest
