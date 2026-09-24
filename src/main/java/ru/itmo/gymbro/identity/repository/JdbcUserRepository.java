@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import ru.itmo.gymbro.identity.model.User;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -49,5 +50,10 @@ class JdbcUserRepository implements UserRepository {
     @Override
     public void deleteById(long id) {
         dao.deleteById(id);
+    }
+
+    @Override
+    public List<Long> findBannedIds() {
+        return dao.findBannedIds();
     }
 }

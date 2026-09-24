@@ -3,6 +3,7 @@ package ru.itmo.gymbro.matching.repository;
 import org.springframework.stereotype.Repository;
 import ru.itmo.gymbro.matching.model.Like;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -27,5 +28,10 @@ class JdbcLikeRepository implements LikeRepository {
     @Override
     public boolean existsBetween(long fromUserId, long toUserId) {
         return dao.existsByFromUserIdAndToUserId(fromUserId, toUserId);
+    }
+
+    @Override
+    public List<Long> findLikedUserIds(long fromUserId) {
+        return dao.findLikedUserIds(fromUserId);
     }
 }
