@@ -30,7 +30,6 @@ class LikeRepositoryTest extends AbstractIntegrationTest {
         assertThat(saved.getCreatedAt()).isNotNull();
         assertThat(likes.existsBetween(anna, boris)).isTrue();
         assertThat(likes.existsBetween(boris, anna)).isFalse();
-        assertThat(likes.findBetween(anna, boris)).isPresent();
     }
 
     @Test

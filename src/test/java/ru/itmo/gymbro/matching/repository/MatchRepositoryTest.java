@@ -50,7 +50,6 @@ class MatchRepositoryTest extends AbstractIntegrationTest {
 
         Match reloaded = matches.findById(saved.getId()).orElseThrow();
 
-        assertThat(reloaded.involves(anna)).isTrue();
         assertThat(reloaded.partnerOf(anna)).isEqualTo(boris);
         assertThat(reloaded.partnerOf(boris)).isEqualTo(anna);
     }

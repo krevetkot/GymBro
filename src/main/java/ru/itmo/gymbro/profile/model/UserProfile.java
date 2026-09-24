@@ -87,10 +87,6 @@ public class UserProfile {
         touch();
     }
 
-    public boolean practises(long sportId) {
-        return sports.stream().anyMatch(sport -> sport.getSportId() == sportId);
-    }
-
     public int getAge() {
         return Period.between(birthDate, LocalDate.now()).getYears();
     }

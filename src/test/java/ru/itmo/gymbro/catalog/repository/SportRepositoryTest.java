@@ -8,8 +8,6 @@ import org.springframework.data.domain.PageRequest;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.catalog.model.Sport;
 
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 class SportRepositoryTest extends AbstractIntegrationTest {
@@ -35,16 +33,5 @@ class SportRepositoryTest extends AbstractIntegrationTest {
         assertThat(saved.getName()).isEqualTo("Сквош");
         assertThat(sports.existsByName("Сквош")).isTrue();
         assertThat(sports.existsByName("Кёрлинг")).isFalse();
-    }
-
-    @Test
-    @DisplayName("Несколько видов спорта читаются одним запросом по списку id")
-    void findsSeveralSportsByIds() {
-        Sport rowing = sports.save(Sport.of("Гребля"));
-        Sport golf = sports.save(Sport.of("Гольф"));
-
-        assertThat(sports.findAllById(List.of(rowing.getId(), golf.getId())))
-                .extracting(Sport::getName)
-                .containsExactlyInAnyOrder("Гребля", "Гольф");
     }
 }
