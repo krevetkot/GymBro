@@ -19,3 +19,15 @@ databaseChangeLog:
       rollback:
         - sql:
             sql: DROP TABLE users
+
+  - changeSet:
+      id: identity-002-seed-admin
+      author: gymbro
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO users (email, password_hash, role, status)
+              VALUES ('admin@gymbro.local', '$2a$10$q3/Bqbn2VPRYL2mcVToi2.wUWQE3lkt8qmkTla5RiaqySWyE/tEZq', 'ADMIN', 'ACTIVE')
+      rollback:
+        - sql:
+            sql: DELETE FROM users WHERE email = 'admin@gymbro.local'
