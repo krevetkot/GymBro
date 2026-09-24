@@ -3,6 +3,8 @@ package ru.itmo.gymbro.catalog.service;
 import org.junit.jupiter.api.Test;
 import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.repository.GymRepository;
+import ru.itmo.gymbro.identity.api.CurrentUserAccess;
+import ru.itmo.gymbro.shared.api.ForbiddenException;
 import ru.itmo.gymbro.shared.api.ConflictException;
 import ru.itmo.gymbro.shared.api.NotFoundException;
 
@@ -20,7 +22,17 @@ import static org.mockito.Mockito.when;
 class GymServiceTest {
 
     private final GymRepository gyms = mock(GymRepository.class);
-    private final GymService service = new GymService(gyms);
+    private final CurrentUserAccess access = mock(CurrentUserAccess.class);
+    private final GymService service = new GymService(gyms, access);
+
+    @Test
+    void deniedChangesNeverAccessTheRepository() {
+        when(access.requireAdmin()).thenThrow(new ForbiddenException("Требуется администратор"));
+        assertThatThrownBy(() -> service.update(1L, "Gym", "City", "Address"))
+                .isInstanceOf(ForbiddenException.class);
+        assertThatThrownBy(() -> service.delete(1L)).isInstanceOf(ForbiddenException.class);
+        org.mockito.Mockito.verifyNoInteractions(gyms);
+    }
 
     @Test
     void trimsFieldsBeforeDuplicateCheckAndSave() {
