@@ -90,7 +90,6 @@ class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
             existingGymId = gyms.save(Gym.of("Old gym", city, "Old address")).getId();
             UserProfile profile = UserProfile.create(authorId, "Author", LocalDate.of(2000, 1, 1), "About");
             profile.replaceGyms(List.of(UserGym.of(existingGymId)));
-            profile.addPhoto("https://example.com/photo.jpg");
             long sportId = jdbc.queryForObject("SELECT MIN(id) FROM sports", Long.class);
             profile.replaceSports(List.of(UserSport.of(sportId, SportLevel.BEGINNER)));
             profiles.save(profile);
@@ -129,7 +128,6 @@ class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
             assertThat(profile.getGyms()).extracting(UserGym::getGymId)
                     .containsExactly(existingGymId);
             assertThat(profile.getUpdatedAt()).isEqualTo(profileUpdatedAt);
-            assertThat(profile.getPhotos()).hasSize(1);
             assertThat(profile.getSports()).hasSize(1);
             assertThat(profile.getName()).isEqualTo("Author");
             assertThat(profile.getAbout()).isEqualTo("About");

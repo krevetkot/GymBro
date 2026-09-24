@@ -35,13 +35,6 @@ public class UserSport {
         return new UserSport(null, sportId, level);
     }
 
-    public void changeLevel(SportLevel newLevel) {
-        if (newLevel == null) {
-            throw new IllegalArgumentException("Уровень обязателен");
-        }
-        this.level = newLevel;
-    }
-
     public Long getId() {
         return id;
     }

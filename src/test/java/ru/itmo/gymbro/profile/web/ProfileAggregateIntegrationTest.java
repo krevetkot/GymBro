@@ -20,7 +20,7 @@ import ru.itmo.gymbro.catalog.repository.GymRepository;
 import ru.itmo.gymbro.identity.model.User;
 import ru.itmo.gymbro.identity.repository.UserRepository;
 import ru.itmo.gymbro.profile.model.SportLevel;
-import ru.itmo.gymbro.profile.model.UserPhoto;
+import ru.itmo.gymbro.profile.model.UserGym;
 import ru.itmo.gymbro.profile.model.UserProfile;
 import ru.itmo.gymbro.profile.model.UserSport;
 import ru.itmo.gymbro.profile.repository.UserProfileRepository;
@@ -39,8 +39,6 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -108,55 +106,38 @@ class ProfileAggregateIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Удаление фото переписывает позиции оставшихся без пропусков")
-    void removingPhotoRewritesPositions() throws Exception {
-        createProfile();
-        for (String name : List.of("a", "b", "c")) {
-            perform(post(MY_PROFILE + "/photos"), "{\"url\":\"https://cdn/%s.jpg\"}".formatted(name));
-        }
-        perform(delete(MY_PROFILE + "/photos/0"), null);
-
-        assertThat(jdbc.queryForList("SELECT position FROM user_photos WHERE profile_id = ? ORDER BY position",
-                Integer.class, profileId())).containsExactly(0, 1);
-        assertThat(jdbc.queryForList("SELECT url FROM user_photos WHERE profile_id = ? ORDER BY position",
-                String.class, profileId())).containsExactly("https://cdn/b.jpg", "https://cdn/c.jpg");
-    }
-
-    @Test
     @DisplayName("Редактирование анкеты не дублирует и не теряет дочерние строки")
     void editingProfileKeepsChildRows() throws Exception {
         createProfile();
         perform(put(MY_PROFILE + "/sports"), sportsBody(sportIds.get(0), sportIds.get(1)));
         perform(put(MY_PROFILE + "/gyms"), "{\"gymIds\":[%d]}".formatted(gymId));
-        perform(post(MY_PROFILE + "/photos"), "{\"url\":\"https://cdn/me.jpg\"}");
 
         perform(put(MY_PROFILE), profileBody("Новое имя"));
 
         assertThat(countRows("user_sports")).isEqualTo(2);
         assertThat(countRows("user_gyms")).isEqualTo(1);
-        assertThat(countRows("user_photos")).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM user_profiles WHERE user_id = ?", Long.class, userId))
                 .isEqualTo(1);
     }
 
     @Test
-    @DisplayName("Сбой при сохранении откатывает агрегат целиком: корень, фото и виды спорта")
+    @DisplayName("Сбой при сохранении откатывает агрегат целиком: корень, залы и виды спорта")
     void failedSaveRollsBackWholeAggregate() {
         UserProfile profile = UserProfile.create(userId, "Ксения", LocalDate.of(2003, 5, 17), null);
-        profile.addPhoto("https://cdn/keep.jpg");
+        profile.replaceGyms(List.of(UserGym.of(gymId)));
         profile.replaceSports(List.of(UserSport.of(sportIds.get(0), SportLevel.BEGINNER)));
         profiles.save(profile);
 
         UserProfile changed = profiles.findByUserId(userId).orElseThrow();
         changed.edit("Другое имя", LocalDate.of(2003, 5, 17), null);
-        changed.removePhoto(0);
+        changed.replaceGyms(List.of());
         changed.replaceSports(List.of(UserSport.of(Long.MAX_VALUE, SportLevel.ADVANCED)));
 
         assertThatThrownBy(() -> profiles.save(changed)).isInstanceOf(DataIntegrityViolationException.class);
 
         UserProfile stored = profiles.findByUserId(userId).orElseThrow();
         assertThat(stored.getName()).isEqualTo("Ксения");
-        assertThat(stored.getPhotos()).extracting(UserPhoto::getUrl).containsExactly("https://cdn/keep.jpg");
+        assertThat(stored.getGyms()).extracting(UserGym::getGymId).containsExactly(gymId);
         assertThat(stored.getSports()).extracting(UserSport::getSportId).containsExactly(sportIds.get(0));
     }
 
@@ -188,17 +169,19 @@ class ProfileAggregateIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Одновременно добавленные фото не теряются")
-    void concurrentPhotoAdditionsAreNotLost() throws Exception {
+    @DisplayName("Одновременные изменения видов спорта и залов не затирают друг друга")
+    void concurrentChangesOfDifferentCollectionsAreNotLost() throws Exception {
         createProfile();
 
         List<Integer> statuses = concurrently(
-                () -> status(post(MY_PROFILE + "/photos"), "{\"url\":\"https://cdn/left.jpg\"}"),
-                () -> status(post(MY_PROFILE + "/photos"), "{\"url\":\"https://cdn/right.jpg\"}"));
+                () -> status(put(MY_PROFILE + "/sports"), sportsBody(sportIds.get(0))),
+                () -> status(put(MY_PROFILE + "/gyms"), "{\"gymIds\":[%d]}".formatted(gymId)));
 
-        assertThat(statuses).containsOnly(201);
-        assertThat(jdbc.queryForList("SELECT url FROM user_photos WHERE profile_id = ?", String.class, profileId()))
-                .containsExactlyInAnyOrder("https://cdn/left.jpg", "https://cdn/right.jpg");
+        assertThat(statuses).containsOnly(200);
+        assertThat(jdbc.queryForList("SELECT sport_id FROM user_sports WHERE profile_id = ?", Long.class, profileId()))
+                .containsExactly(sportIds.get(0));
+        assertThat(jdbc.queryForList("SELECT gym_id FROM user_gyms WHERE profile_id = ?", Long.class, profileId()))
+                .containsExactly(gymId);
     }
 
     private void createProfile() throws Exception {

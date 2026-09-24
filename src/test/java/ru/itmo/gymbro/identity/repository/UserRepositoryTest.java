@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.identity.model.Role;
 import ru.itmo.gymbro.identity.model.User;
@@ -77,5 +78,15 @@ class UserRepositoryTest extends AbstractIntegrationTest {
         users.deleteById(user.getId());
 
         assertThat(users.existsById(user.getId())).isFalse();
+    }
+
+    @Test
+    @DisplayName("Миграция создала тестового администратора с паролем admin12345")
+    void seedsTestAdmin() {
+        User admin = users.findByEmail("admin@gymbro.local").orElseThrow();
+
+        assertThat(admin.getRole()).isEqualTo(Role.ADMIN);
+        assertThat(admin.getStatus()).isEqualTo(UserStatus.ACTIVE);
+        assertThat(new BCryptPasswordEncoder().matches("admin12345", admin.getPasswordHash())).isTrue();
     }
 }

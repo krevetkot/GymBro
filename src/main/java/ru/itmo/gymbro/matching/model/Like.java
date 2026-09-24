@@ -40,10 +40,6 @@ public class Like {
         return new Like(null, fromUserId, toUserId, Instant.now());
     }
 
-    public boolean isReciprocalTo(Like other) {
-        return other != null && fromUserId == other.toUserId && toUserId == other.fromUserId;
-    }
-
     public Long getId() {
         return id;
     }

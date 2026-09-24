@@ -134,7 +134,6 @@ class FeedApiIntegrationTest extends AbstractIntegrationTest {
         mvc.perform(get(FEED).header("X-User-Id", viewer).param("size", "1"))
                 .andExpect(jsonPath("$.items[0].name").value("best"))
                 .andExpect(jsonPath("$.items[0].age").isNumber())
-                .andExpect(jsonPath("$.items[0].photoUrls", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].sportIds", containsInAnyOrder((int) sportA, (int) sportB)))
                 .andExpect(jsonPath("$.items[0].gymIds[0]").value(gym));
     }
@@ -165,7 +164,6 @@ class FeedApiIntegrationTest extends AbstractIntegrationTest {
     private long userWithProfile(String name, List<Long> sportIds, List<Long> gymIds) {
         long userId = users.save(User.register(marker + "-" + name + "@mail.ru", "hash")).getId();
         UserProfile profile = UserProfile.create(userId, name, LocalDate.of(2000, 1, 1), null);
-        profile.addPhoto("https://cdn/" + marker + "/" + name + ".jpg");
         profile.replaceSports(sportIds.stream().map(id -> UserSport.of(id, SportLevel.BEGINNER)).toList());
         profile.replaceGyms(gymIds.stream().map(UserGym::of).toList());
         profiles.save(profile);

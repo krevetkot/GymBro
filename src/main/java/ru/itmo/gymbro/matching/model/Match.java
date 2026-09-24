@@ -46,10 +46,6 @@ public class Match {
                 Instant.now());
     }
 
-    public boolean involves(long userId) {
-        return user1Id == userId || user2Id == userId;
-    }
-
     public long partnerOf(long userId) {
         if (user1Id == userId) {
             return user2Id;

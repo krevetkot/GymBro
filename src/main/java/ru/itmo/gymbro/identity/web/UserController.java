@@ -12,10 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import ru.itmo.gymbro.identity.api.DeleteUserUseCase;
-import ru.itmo.gymbro.identity.api.GetUserUseCase;
-import ru.itmo.gymbro.identity.api.RegisterUserUseCase;
-import ru.itmo.gymbro.identity.api.UpdateUserUseCase;
+import ru.itmo.gymbro.identity.api.UserUseCases;
 import ru.itmo.gymbro.identity.dto.RegisterUserRequest;
 import ru.itmo.gymbro.identity.dto.UpdateUserRequest;
 import ru.itmo.gymbro.identity.dto.UserResponse;
@@ -28,43 +25,36 @@ import java.util.List;
 @RequestMapping("/api/v1/users")
 class UserController {
 
-    private final RegisterUserUseCase registerUser;
-    private final GetUserUseCase getUser;
-    private final UpdateUserUseCase updateUser;
-    private final DeleteUserUseCase deleteUser;
+    private final UserUseCases users;
 
-    UserController(RegisterUserUseCase registerUser, GetUserUseCase getUser,
-                   UpdateUserUseCase updateUser, DeleteUserUseCase deleteUser) {
-        this.registerUser = registerUser;
-        this.getUser = getUser;
-        this.updateUser = updateUser;
-        this.deleteUser = deleteUser;
+    UserController(UserUseCases users) {
+        this.users = users;
     }
 
     @PostMapping
     ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterUserRequest request) {
-        UserResponse response = UserResponse.from(registerUser.register(request.getEmail(), request.getPassword()));
+        UserResponse response = UserResponse.from(users.register(request.getEmail(), request.getPassword()));
         return ResponseEntity.created(URI.create("/api/v1/users/" + response.getId())).body(response);
     }
 
     @GetMapping("/{id}")
     UserResponse getById(@PathVariable @Positive long id) {
-        return UserResponse.from(getUser.getById(id));
+        return UserResponse.from(users.getById(id));
     }
 
     @GetMapping
     ResponseEntity<List<UserResponse>> getPage(Pageable pageable) {
-        return PageResponses.withTotalCount(getUser.getPage(pageable).map(UserResponse::from));
+        return PageResponses.withTotalCount(users.getPage(pageable).map(UserResponse::from));
     }
 
     @PatchMapping("/{id}")
     UserResponse update(@PathVariable @Positive long id, @Valid @RequestBody UpdateUserRequest request) {
-        return UserResponse.from(updateUser.update(id, request.getEmail(), request.getPassword()));
+        return UserResponse.from(users.update(id, request.getEmail(), request.getPassword()));
     }
 
     @DeleteMapping("/{id}")
     ResponseEntity<Void> delete(@PathVariable @Positive long id) {
-        deleteUser.delete(id);
+        users.delete(id);
         return ResponseEntity.noContent().build();
     }
 }

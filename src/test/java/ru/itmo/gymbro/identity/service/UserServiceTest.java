@@ -17,11 +17,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class CurrentUserAccessServiceTest {
+class UserServiceTest {
 
     private final CurrentUserProvider currentUser = mock(CurrentUserProvider.class);
     private final UserRepository users = mock(UserRepository.class);
-    private final CurrentUserAccessService service = new CurrentUserAccessService(currentUser, users);
+    private final UserService service = new UserService(users, currentUser);
 
     @Test
     void acceptsActiveUserButDoesNotGrantAdminRights() {
