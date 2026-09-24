@@ -12,8 +12,6 @@ public interface SportUseCases {
 
     Page<Sport> getPage(Pageable pageable);
 
-    Sport update(long id, String name);
-
     void delete(long id);
 }
 

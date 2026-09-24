@@ -1,5 +1,6 @@
 package ru.itmo.gymbro.catalog.web;
 
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -13,9 +14,16 @@ import org.springframework.web.context.WebApplicationContext;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.repository.GymRepository;
+import ru.itmo.gymbro.identity.model.Role;
+import ru.itmo.gymbro.identity.model.User;
+import ru.itmo.gymbro.identity.model.UserStatus;
+import ru.itmo.gymbro.identity.repository.UserRepository;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.stream.Stream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -28,6 +36,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class CatalogApiIntegrationTest extends AbstractIntegrationTest {
 
+    private static final String SPORTS = "/api/v1/sports";
+    private static final String GYMS = "/api/v1/gyms";
+    private static final String GYM = "{\"name\":\"Test gym\",\"city\":\"Moscow\",\"address\":\"Street 1\"}";
+    private static final String UPDATED_GYM = "{\"name\":\"Updated gym\",\"city\":\"Kazan\",\"address\":\"Street 2\"}";
+
     @Autowired
     private WebApplicationContext context;
 
@@ -35,7 +48,7 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
     private GymRepository gyms;
 
     @Autowired
-    private ru.itmo.gymbro.identity.repository.UserRepository users;
+    private UserRepository users;
 
     private long adminId;
     private MockMvc mvc;
@@ -43,41 +56,52 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        adminId = users.save(new ru.itmo.gymbro.identity.model.User(null, "catalog-admin@example.com", "hash",
-                ru.itmo.gymbro.identity.model.Role.ADMIN, ru.itmo.gymbro.identity.model.UserStatus.ACTIVE,
-                java.time.Instant.now())).getId();
+        adminId = users.save(new User(null, "catalog-admin@example.com", "hash",
+                Role.ADMIN, UserStatus.ACTIVE, Instant.now())).getId();
     }
 
     static Stream<Arguments> catalogs() {
         return Stream.of(
-                Arguments.of("/api/v1/sports",
-                        "{\"name\":\"Test sport\"}",
-                        "{\"name\":\"Updated sport\"}", "Updated sport"),
-                Arguments.of("/api/v1/gyms",
-                        "{\"name\":\"Test gym\",\"city\":\"Moscow\",\"address\":\"Street 1\"}",
-                        "{\"name\":\"Updated gym\",\"city\":\"Kazan\",\"address\":\"Street 2\"}", "Updated gym"));
+                Arguments.of(SPORTS, "{\"name\":\"Test sport\"}"),
+                Arguments.of(GYMS, GYM));
     }
 
-    @ParameterizedTest
-    @MethodSource("catalogs")
-    void createsReadsUpdatesAndDeletes(String path, String body, String updated, String updatedName) throws Exception {
-        String location = create(path, body);
+    @Test
+    void createsListsAndDeletesSport() throws Exception {
+        long id = create(SPORTS, "{\"name\":\"Test sport\"}");
+
+        String page = mvc.perform(get(SPORTS).param("size", "50"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        List<Number> ids = JsonPath.read(page, "$[*].id");
+        assertThat(ids).extracting(Number::longValue).contains(id);
+
+        mvc.perform(delete(SPORTS + "/" + id).header("X-User-Id", adminId)).andExpect(status().isNoContent());
+        mvc.perform(delete(SPORTS + "/" + id).header("X-User-Id", adminId)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void createsReadsUpdatesAndDeletesGym() throws Exception {
+        String location = mvc.perform(post(GYMS).header("X-User-Id", adminId)
+                        .contentType(MediaType.APPLICATION_JSON).content(GYM))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", containsString(GYMS + "/")))
+                .andReturn().getResponse().getHeader("Location");
         mvc.perform(get(location))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNumber());
 
-        mvc.perform(put(location).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON).content(updated))
+        mvc.perform(put(location).header("X-User-Id", adminId)
+                        .contentType(MediaType.APPLICATION_JSON).content(UPDATED_GYM))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value(updatedName));
-        mvc.perform(get(location)).andExpect(jsonPath("$.name").value(updatedName));
-        if (path.endsWith("gyms")) {
-            mvc.perform(get(location))
-                    .andExpect(jsonPath("$.city").value("Kazan"))
-                    .andExpect(jsonPath("$.address").value("Street 2"));
-        }
+                .andExpect(jsonPath("$.name").value("Updated gym"));
+        mvc.perform(get(location))
+                .andExpect(jsonPath("$.name").value("Updated gym"))
+                .andExpect(jsonPath("$.city").value("Kazan"))
+                .andExpect(jsonPath("$.address").value("Street 2"));
 
-        // Updating with the same unique fields must not conflict with itself.
-        mvc.perform(put(location).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON).content(updated))
+        mvc.perform(put(location).header("X-User-Id", adminId)
+                        .contentType(MediaType.APPLICATION_JSON).content(UPDATED_GYM))
                 .andExpect(status().isOk());
 
         mvc.perform(delete(location).header("X-User-Id", adminId)).andExpect(status().isNoContent());
@@ -87,56 +111,66 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
 
     @ParameterizedTest
     @MethodSource("catalogs")
-    void rejectsDuplicateCreation(String path, String body, String updated, String updatedName) throws Exception {
+    void rejectsDuplicateCreation(String path, String body) throws Exception {
         create(path, body);
-        mvc.perform(post(path).contentType(MediaType.APPLICATION_JSON).content(body))
+        mvc.perform(post(path).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").isNotEmpty());
     }
 
-    @ParameterizedTest
-    @MethodSource("catalogs")
-    void rejectsUpdateToAnotherRecordsUniqueFields(
-            String path, String body, String updated, String updatedName) throws Exception {
-        String location = create(path, body);
-        create(path, updated);
-        mvc.perform(put(location).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON).content(updated))
+    @Test
+    void rejectsGymUpdateToAnotherRecordsUniqueFields() throws Exception {
+        long id = create(GYMS, GYM);
+        create(GYMS, UPDATED_GYM);
+        mvc.perform(put(GYMS + "/" + id).header("X-User-Id", adminId)
+                        .contentType(MediaType.APPLICATION_JSON).content(UPDATED_GYM))
                 .andExpect(status().isConflict());
-        // A conflict must leave the original resource intact.
-        mvc.perform(get(location)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value(path.endsWith("sports") ? "Test sport" : "Test gym"));
+        mvc.perform(get(GYMS + "/" + id)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Test gym"));
     }
 
     @ParameterizedTest
     @MethodSource("catalogs")
-    void rejectsInvalidAndMalformedBodies(String path, String body, String updated, String updatedName) throws Exception {
-        mvc.perform(post(path).contentType(MediaType.APPLICATION_JSON).content("{\"name\":\" \"}"))
+    void rejectsInvalidAndMalformedBodies(String path, String body) throws Exception {
+        mvc.perform(post(path).header("X-User-Id", adminId)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\" \"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors").isArray());
-        mvc.perform(post(path).contentType(MediaType.APPLICATION_JSON).content("{"))
+        mvc.perform(post(path).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON).content("{"))
                 .andExpect(status().isBadRequest());
-        mvc.perform(post(path).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post(path).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON)
                         .content(body.replace("Test", "x".repeat(301))))
                 .andExpect(status().isBadRequest());
-        String location = create(path, body);
-        mvc.perform(put(location).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON).content("{}"))
+    }
+
+    @Test
+    void rejectsInvalidGymUpdate() throws Exception {
+        long id = create(GYMS, GYM);
+        mvc.perform(put(GYMS + "/" + id).header("X-User-Id", adminId)
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isBadRequest());
     }
 
     @ParameterizedTest
     @MethodSource("catalogs")
-    void handlesMissingRecordsAndInvalidParameters(
-            String path, String body, String updated, String updatedName) throws Exception {
-        String missing = path + "/9223372036854775807";
-        mvc.perform(get(missing)).andExpect(status().isNotFound());
-        mvc.perform(put(missing).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON).content(body))
+    void handlesMissingRecordsAndInvalidParameters(String path, String body) throws Exception {
+        mvc.perform(delete(path + "/9223372036854775807").header("X-User-Id", adminId))
                 .andExpect(status().isNotFound());
-        mvc.perform(delete(missing).header("X-User-Id", adminId)).andExpect(status().isNotFound());
-        mvc.perform(get(path + "/-1")).andExpect(status().isBadRequest());
-        mvc.perform(get(path + "/abc")).andExpect(status().isBadRequest());
+        mvc.perform(delete(path + "/-1").header("X-User-Id", adminId)).andExpect(status().isBadRequest());
+        mvc.perform(delete(path + "/abc").header("X-User-Id", adminId)).andExpect(status().isBadRequest());
         mvc.perform(get(path).param("sort", "unknown,asc"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail", containsString("unknown")));
+    }
+
+    @Test
+    void handlesMissingGymOnReadAndUpdate() throws Exception {
+        String missing = GYMS + "/9223372036854775807";
+        mvc.perform(get(missing)).andExpect(status().isNotFound());
+        mvc.perform(put(missing).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON).content(GYM))
+                .andExpect(status().isNotFound());
+        mvc.perform(get(GYMS + "/-1")).andExpect(status().isBadRequest());
+        mvc.perform(get(GYMS + "/abc")).andExpect(status().isBadRequest());
     }
 
     @Test
@@ -144,19 +178,19 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
         for (int i = 0; i < 55; i++) {
             gyms.save(Gym.of("Same name", "Test city", "Address " + i));
         }
-        mvc.perform(get("/api/v1/gyms"))
+        mvc.perform(get(GYMS))
                 .andExpect(status().isOk())
                 .andExpect(header().string("X-Total-Count", "55"))
                 .andExpect(jsonPath("$", hasSize(20)));
-        mvc.perform(get("/api/v1/gyms").param("size", "1000").param("sort", "name,asc"))
+        mvc.perform(get(GYMS).param("size", "1000").param("sort", "name,asc"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("X-Total-Count", "55"))
                 .andExpect(jsonPath("$", hasSize(50)));
-        mvc.perform(get("/api/v1/gyms").param("size", "50").param("page", "1"))
+        mvc.perform(get(GYMS).param("size", "50").param("page", "1"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("X-Total-Count", "55"))
                 .andExpect(jsonPath("$", hasSize(5)));
-        mvc.perform(get("/api/v1/gyms").param("page", "100"))
+        mvc.perform(get(GYMS).param("page", "100"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("X-Total-Count", "55"))
                 .andExpect(jsonPath("$", hasSize(0)));
@@ -164,7 +198,7 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void listsSeededSportsWithTotalCount() throws Exception {
-        mvc.perform(get("/api/v1/sports").param("size", "3"))
+        mvc.perform(get(SPORTS).param("size", "3"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("X-Total-Count", "10"))
                 .andExpect(jsonPath("$", hasSize(3)));
@@ -172,21 +206,21 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void normalizesWhitespaceBeforeCheckingDuplicates() throws Exception {
-        create("/api/v1/sports", "{\"name\":\"  New sport  \"}");
-        mvc.perform(post("/api/v1/sports").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"New sport\"}"))
+        create(SPORTS, "{\"name\":\"  New sport  \"}");
+        mvc.perform(post(SPORTS).contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"New sport\"}"))
                 .andExpect(status().isConflict());
-        create("/api/v1/gyms", "{\"name\":\" Gym \",\"city\":\" City \",\"address\":\" Address \"}");
-        mvc.perform(post("/api/v1/gyms").contentType(MediaType.APPLICATION_JSON)
+        create(GYMS, "{\"name\":\" Gym \",\"city\":\" City \",\"address\":\" Address \"}");
+        mvc.perform(post(GYMS).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Another gym\",\"city\":\"City\",\"address\":\"Address\"}"))
                 .andExpect(status().isConflict());
     }
 
-    private String create(String path, String body) throws Exception {
-        return mvc.perform(post(path).contentType(MediaType.APPLICATION_JSON).content(body))
+    private long create(String path, String body) throws Exception {
+        String json = mvc.perform(post(path).header("X-User-Id", adminId)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", containsString(path + "/")))
                 .andExpect(jsonPath("$.id").isNumber())
-                .andReturn().getResponse().getHeader("Location");
+                .andReturn().getResponse().getContentAsString();
+        return ((Number) JsonPath.read(json, "$.id")).longValue();
     }
 }

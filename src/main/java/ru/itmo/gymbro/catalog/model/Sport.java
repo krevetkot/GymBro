@@ -26,10 +26,6 @@ public class Sport {
         return new Sport(null, name);
     }
 
-    public void rename(String newName) {
-        this.name = checkName(newName);
-    }
-
     public Long getId() {
         return id;
     }

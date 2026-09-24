@@ -45,19 +45,6 @@ class SportService implements SportUseCases {
 
     @Override
     @Transactional
-    public Sport update(long id, String name) {
-        Sport existing = getById(id);
-        Sport candidate = new Sport(id, name);
-        if (!existing.getName().equals(candidate.getName())
-                && sports.existsByName(candidate.getName())) {
-            throw new ConflictException("Вид спорта с таким названием уже существует");
-        }
-        existing.rename(candidate.getName());
-        return sports.save(existing);
-    }
-
-    @Override
-    @Transactional
     public void delete(long id) {
         getById(id);
         sports.deleteById(id);
