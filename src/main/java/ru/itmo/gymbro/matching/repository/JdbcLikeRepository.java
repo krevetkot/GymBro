@@ -4,7 +4,6 @@ import org.springframework.stereotype.Repository;
 import ru.itmo.gymbro.matching.model.Like;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 class JdbcLikeRepository implements LikeRepository {
@@ -18,11 +17,6 @@ class JdbcLikeRepository implements LikeRepository {
     @Override
     public Like save(Like like) {
         return dao.save(like);
-    }
-
-    @Override
-    public Optional<Like> findBetween(long fromUserId, long toUserId) {
-        return dao.findByFromUserIdAndToUserId(fromUserId, toUserId);
     }
 
     @Override

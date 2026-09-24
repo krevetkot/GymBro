@@ -12,13 +12,18 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import ru.itmo.gymbro.AbstractIntegrationTest;
+import ru.itmo.gymbro.catalog.model.Sport;
+import ru.itmo.gymbro.catalog.repository.SportRepository;
 import ru.itmo.gymbro.identity.model.User;
 import ru.itmo.gymbro.identity.repository.UserRepository;
+import ru.itmo.gymbro.profile.model.SportLevel;
 import ru.itmo.gymbro.profile.model.UserProfile;
+import ru.itmo.gymbro.profile.model.UserSport;
 import ru.itmo.gymbro.profile.repository.UserProfileRepository;
 
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -43,6 +48,9 @@ class ProfileApiIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private UserProfileRepository profiles;
 
+    @Autowired
+    private SportRepository sports;
+
     private MockMvc mvc;
     private long userId;
 
@@ -62,7 +70,6 @@ class ProfileApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.name").value("Ксения"))
                 .andExpect(jsonPath("$.age").value(Period.between(BIRTH_DATE, LocalDate.now()).getYears()))
                 .andExpect(jsonPath("$.about").value("бегаю по утрам"))
-                .andExpect(jsonPath("$.photos", hasSize(0)))
                 .andExpect(jsonPath("$.sports", hasSize(0)))
                 .andExpect(jsonPath("$.gymIds", hasSize(0)))
                 .andExpect(jsonPath("$.updatedAt").isNotEmpty());
@@ -88,17 +95,18 @@ class ProfileApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Редактирование не трогает фото, виды спорта и залы анкеты")
+    @DisplayName("Редактирование не трогает виды спорта и залы анкеты")
     void keepsCollectionsOnEdit() throws Exception {
+        long sportId = sports.save(Sport.of("Гребля на байдарках")).getId();
         UserProfile profile = UserProfile.create(userId, "Ксения", BIRTH_DATE, null);
-        profile.addPhoto("https://cdn/1.jpg");
+        profile.replaceSports(Set.of(UserSport.of(sportId, SportLevel.ADVANCED)));
         profiles.save(profile);
 
         saveMine(userId, "Ксюша", "2003-05-17", null)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.photos", hasSize(1)))
-                .andExpect(jsonPath("$.photos[0].position").value(0))
-                .andExpect(jsonPath("$.photos[0].url").value("https://cdn/1.jpg"));
+                .andExpect(jsonPath("$.sports", hasSize(1)))
+                .andExpect(jsonPath("$.sports[0].sportId").value(sportId))
+                .andExpect(jsonPath("$.sports[0].level").value("ADVANCED"));
     }
 
     @Test

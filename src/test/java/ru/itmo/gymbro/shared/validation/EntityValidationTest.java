@@ -52,19 +52,6 @@ class EntityValidationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Невалидная фотография не даёт сохранить анкету целиком")
-    void cascadesValidationIntoPhotos() {
-        long userId = users.save(User.register("cascade@mail.ru", "hash")).getId();
-        UserProfile profile = UserProfile.create(userId, "Ксения", LocalDate.of(2003, 5, 17), null);
-        profile.addPhoto("https://cdn/" + "a".repeat(500));
-
-        assertThatThrownBy(() -> profiles.save(profile))
-                .isInstanceOfSatisfying(ConstraintViolationException.class,
-                        exception -> assertThat(violatedPaths(exception)).containsExactly("photos[0].url"));
-        assertThat(profiles.existsByUserId(userId)).isFalse();
-    }
-
-    @Test
     @DisplayName("Анкета с именем длиннее колонки не сохраняется")
     void rejectsTooLongProfileName() {
         long userId = users.save(User.register("longname@mail.ru", "hash")).getId();

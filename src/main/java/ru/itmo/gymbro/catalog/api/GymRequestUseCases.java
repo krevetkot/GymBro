@@ -9,5 +9,8 @@ public interface GymRequestUseCases {
     GymRequest submit(String name, String city, String address);
 
     Page<GymRequest> getPage(Pageable pageable);
-}
 
+    GymRequest approve(long requestId);
+
+    GymRequest reject(long requestId);
+}

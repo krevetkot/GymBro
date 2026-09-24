@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Positive;
 import ru.itmo.gymbro.profile.model.SportLevel;
 import ru.itmo.gymbro.profile.model.UserSport;
 
-public class ProfileSportRequest {
+public class ProfileSportItem {
 
     @NotNull
     @Positive
@@ -13,6 +13,13 @@ public class ProfileSportRequest {
 
     @NotNull
     private SportLevel level;
+
+    public static ProfileSportItem from(UserSport sport) {
+        ProfileSportItem item = new ProfileSportItem();
+        item.sportId = sport.getSportId();
+        item.level = sport.getLevel();
+        return item;
+    }
 
     public Long getSportId() {
         return sportId;

@@ -34,12 +34,6 @@ springdoc:
   api-docs:
     path: /v3/api-docs
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
-
 logging:
   level:
     org.springframework.jdbc.core: ${SQL_LOG_LEVEL:INFO}

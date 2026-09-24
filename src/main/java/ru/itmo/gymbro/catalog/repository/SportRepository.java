@@ -4,8 +4,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import ru.itmo.gymbro.catalog.model.Sport;
 
-import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 
 public interface SportRepository {
@@ -13,8 +11,6 @@ public interface SportRepository {
     Sport save(Sport sport);
 
     Optional<Sport> findById(long id);
-
-    List<Sport> findAllById(Collection<Long> ids);
 
     Page<Sport> findAll(Pageable pageable);
 

@@ -31,7 +31,7 @@ flowchart LR
     eventSearch(["Поиск партнёра на событие"]):::uc
     matches(["Просмотр мэтчей"]):::uc
 
-    profileData(["Имя, фото, возраст, виды спорта,<br/>залы с абонементом"]):::uc
+    profileData(["Имя, возраст, виды спорта,<br/>залы с абонементом"]):::uc
     gymRequest(["Создать заявку на добавление зала"]):::uc
     like(["Ставить лайк"]):::uc
     complaint(["Создать жалобу"]):::uc
@@ -103,8 +103,8 @@ flowchart LR
 | Модуль | Ответственность |
 |---|---|
 | `identity` | Учётные записи, BCrypt-хеширование паролей, роли, статусы, текущий пользователь |
-| `catalog` | CRUD видов спорта и залов, подача и рассмотрение заявок |
-| `profile` | Анкеты, фотографии, выбранные виды спорта с уровнем и залы |
+| `catalog` | Виды спорта (создание, список, удаление), CRUD залов, подача и рассмотрение заявок |
+| `profile` | Анкеты, выбранные виды спорта с уровнем и залы |
 | `matching` | Лента, лайки, создание и просмотр совпадений |
 | `shared` | Ошибки, валидация перед сохранением, пагинация, OpenAPI |
 
@@ -131,7 +131,6 @@ erDiagram
     users ||--o{ gym_requests : "подаёт author_id"
     users o|--o{ gym_requests : "рассматривает reviewed_by"
     gyms o|--o{ gym_requests : "создан по заявке gym_id"
-    user_profiles ||--o{ user_photos : "содержит"
     user_profiles ||--o{ user_sports : "выбирает"
     sports ||--o{ user_sports : "вид спорта"
     user_profiles ||--o{ user_gyms : "выбирает"
@@ -178,12 +177,6 @@ erDiagram
         bigint gym_id FK
         timestamp created_at
     }
-    user_photos {
-        bigint id PK
-        bigint profile_id FK
-        smallint position
-        varchar url
-    }
     user_sports {
         bigint id PK
         bigint profile_id FK
@@ -211,7 +204,7 @@ erDiagram
 
 Типы связей:
 
-- One-to-Many / Many-to-One: анкета и фотографии.
+- One-to-Many / Many-to-One: пользователь и его заявки на залы (`gym_requests.author_id`), пользователь и лайки (`likes.from_user_id`, `likes.to_user_id`).
 - Many-to-Many: анкеты и залы через `user_gyms`.
 - Many-to-Many с дополнительным полем: анкеты и виды спорта через `user_sports.level`.
 - Дополнительно One-to-One: учётная запись и необязательная анкета.
@@ -230,7 +223,7 @@ size ограничивается настройкой Spring до 50.
 
 ### №1: одобрение заявки на зал
 
-`ReviewGymRequestService.approve` выполняется под `@Transactional`:
+`GymRequestService.approve` выполняется под `@Transactional`:
 
 1. Проверяет активного администратора.
 2. Блокирует строку заявки и проверяет статус PENDING.

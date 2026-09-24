@@ -12,9 +12,9 @@ public class ProfileSportsWriteRequest {
 
     @NotNull
     @Size(max = 20)
-    private List<@NotNull @Valid ProfileSportRequest> sports;
+    private List<@NotNull @Valid ProfileSportItem> sports;
 
-    public List<ProfileSportRequest> getSports() {
+    public List<ProfileSportItem> getSports() {
         return sports;
     }
 }

@@ -38,19 +38,8 @@ class SportServiceTest {
     }
 
     @Test
-    void allowsUpdateWithoutChangingUniqueFields() {
-        when(sports.findById(1L)).thenReturn(Optional.of(new Sport(1L, "Sport")));
-        when(sports.save(any(Sport.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        Sport updated = service.update(1L, "Sport");
-        assertThat(updated.getId()).isEqualTo(1L);
-        verify(sports).save(updated);
-        verify(sports, never()).existsByName(any());
-    }
-
-    @Test
-    void missingUpdateAndDeleteDoNotWriteAnything() {
+    void missingDeleteDoesNotWriteAnything() {
         when(sports.findById(1L)).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> service.update(1L, "Sport")).isInstanceOf(NotFoundException.class);
         assertThatThrownBy(() -> service.delete(1L)).isInstanceOf(NotFoundException.class);
         verify(sports, never()).save(any());
         verify(sports, never()).deleteById(anyLong());
