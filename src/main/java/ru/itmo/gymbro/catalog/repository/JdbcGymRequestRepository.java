@@ -27,6 +27,11 @@ class JdbcGymRequestRepository implements GymRequestRepository {
     }
 
     @Override
+    public Optional<GymRequest> findByIdForUpdate(long id) {
+        return dao.findLockedById(id);
+    }
+
+    @Override
     public Page<GymRequest> findAll(Pageable pageable) {
         return dao.findAll(pageable);
     }
