@@ -13,12 +13,12 @@ public class ProfileResponse {
     private final String name;
     private final int age;
     private final String about;
-    private final List<ProfileSportResponse> sports;
+    private final List<ProfileSportItem> sports;
     private final List<Long> gymIds;
     private final Instant updatedAt;
 
     public ProfileResponse(long userId, String name, int age, String about,
-                           List<ProfileSportResponse> sports, List<Long> gymIds, Instant updatedAt) {
+                           List<ProfileSportItem> sports, List<Long> gymIds, Instant updatedAt) {
         this.userId = userId;
         this.name = name;
         this.age = age;
@@ -35,8 +35,8 @@ public class ProfileResponse {
                 profile.getAge(),
                 profile.getAbout(),
                 profile.getSports().stream()
-                        .map(ProfileSportResponse::from)
-                        .sorted(Comparator.comparingLong(ProfileSportResponse::getSportId))
+                        .map(ProfileSportItem::from)
+                        .sorted(Comparator.comparing(ProfileSportItem::getSportId))
                         .toList(),
                 profile.getGyms().stream()
                         .map(UserGym::getGymId)
@@ -61,7 +61,7 @@ public class ProfileResponse {
         return about;
     }
 
-    public List<ProfileSportResponse> getSports() {
+    public List<ProfileSportItem> getSports() {
         return sports;
     }
 
