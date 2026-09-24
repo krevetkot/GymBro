@@ -21,7 +21,7 @@ class RemoveProfilePhotoService implements RemoveProfilePhotoUseCase {
     @Override
     @Transactional
     public void removeMyPhoto(int position) {
-        UserProfile profile = myProfile.require();
+        UserProfile profile = myProfile.lockForChange();
         if (position < 0 || position >= profile.getPhotos().size()) {
             throw new NotFoundException("Фотографии с позицией " + position + " нет в анкете");
         }

@@ -20,7 +20,7 @@ class AddProfilePhotoService implements AddProfilePhotoUseCase {
     @Override
     @Transactional
     public UserProfile addMyPhoto(String url) {
-        UserProfile profile = myProfile.require();
+        UserProfile profile = myProfile.lockForChange();
         profile.addPhoto(url);
         return profiles.save(profile);
     }

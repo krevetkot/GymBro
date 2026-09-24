@@ -27,7 +27,7 @@ class ChangeProfileGymsService implements ChangeProfileGymsUseCase {
     @Override
     @Transactional
     public UserProfile replaceMyGyms(List<Long> gymIds) {
-        UserProfile profile = myProfile.require();
+        UserProfile profile = myProfile.lockForChange();
         if (new HashSet<>(gymIds).size() != gymIds.size()) {
             throw new IllegalArgumentException("Каждый зал можно указать только один раз");
         }

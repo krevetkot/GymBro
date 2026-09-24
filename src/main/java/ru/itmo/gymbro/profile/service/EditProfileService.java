@@ -26,7 +26,7 @@ class EditProfileService implements EditProfileUseCase {
     @Transactional
     public SavedProfile saveMine(String name, LocalDate birthDate, String about) {
         long userId = access.requireActiveUser();
-        Optional<UserProfile> existing = profiles.findByUserId(userId);
+        Optional<UserProfile> existing = profiles.findByUserIdForUpdate(userId);
         if (existing.isEmpty()) {
             return new SavedProfile(profiles.save(UserProfile.create(userId, name, birthDate, about)), true);
         }

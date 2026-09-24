@@ -27,7 +27,7 @@ class ChangeProfileSportsService implements ChangeProfileSportsUseCase {
     @Override
     @Transactional
     public UserProfile replaceMySports(List<UserSport> sports) {
-        UserProfile profile = myProfile.require();
+        UserProfile profile = myProfile.lockForChange();
         if (new HashSet<>(sports).size() != sports.size()) {
             throw new IllegalArgumentException("Каждый вид спорта можно указать только один раз");
         }

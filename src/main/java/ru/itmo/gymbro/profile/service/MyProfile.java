@@ -17,9 +17,9 @@ class MyProfile {
         this.access = access;
     }
 
-    UserProfile require() {
+    UserProfile lockForChange() {
         long userId = access.requireActiveUser();
-        return profiles.findByUserId(userId)
+        return profiles.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> new NotFoundException("Сначала заполните анкету через PUT /api/v1/profiles/me"));
     }
 }

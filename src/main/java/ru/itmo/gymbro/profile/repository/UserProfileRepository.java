@@ -12,6 +12,8 @@ public interface UserProfileRepository {
 
     Optional<UserProfile> findByUserId(long userId);
 
+    Optional<UserProfile> findByUserIdForUpdate(long userId);
+
     boolean existsByUserId(long userId);
 
     void deleteByUserId(long userId);
