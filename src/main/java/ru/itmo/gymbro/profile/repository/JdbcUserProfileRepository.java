@@ -30,6 +30,11 @@ class JdbcUserProfileRepository implements UserProfileRepository {
     }
 
     @Override
+    public Optional<UserProfile> findByUserIdForUpdate(long userId) {
+        return dao.findLockedByUserId(userId);
+    }
+
+    @Override
     public boolean existsByUserId(long userId) {
         return dao.existsByUserId(userId);
     }
