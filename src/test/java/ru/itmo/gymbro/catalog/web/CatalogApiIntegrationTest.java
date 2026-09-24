@@ -34,11 +34,18 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private GymRepository gyms;
 
+    @Autowired
+    private ru.itmo.gymbro.identity.repository.UserRepository users;
+
+    private long adminId;
     private MockMvc mvc;
 
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        adminId = users.save(new ru.itmo.gymbro.identity.model.User(null, "catalog-admin@example.com", "hash",
+                ru.itmo.gymbro.identity.model.Role.ADMIN, ru.itmo.gymbro.identity.model.UserStatus.ACTIVE,
+                java.time.Instant.now())).getId();
     }
 
     static Stream<Arguments> catalogs() {
@@ -59,7 +66,7 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNumber());
 
-        mvc.perform(put(location).contentType(MediaType.APPLICATION_JSON).content(updated))
+        mvc.perform(put(location).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON).content(updated))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value(updatedName));
         mvc.perform(get(location)).andExpect(jsonPath("$.name").value(updatedName));
@@ -70,12 +77,12 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
         }
 
         // Updating with the same unique fields must not conflict with itself.
-        mvc.perform(put(location).contentType(MediaType.APPLICATION_JSON).content(updated))
+        mvc.perform(put(location).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON).content(updated))
                 .andExpect(status().isOk());
 
-        mvc.perform(delete(location)).andExpect(status().isNoContent());
+        mvc.perform(delete(location).header("X-User-Id", adminId)).andExpect(status().isNoContent());
         mvc.perform(get(location)).andExpect(status().isNotFound());
-        mvc.perform(delete(location)).andExpect(status().isNotFound());
+        mvc.perform(delete(location).header("X-User-Id", adminId)).andExpect(status().isNotFound());
     }
 
     @ParameterizedTest
@@ -93,7 +100,7 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
             String path, String body, String updated, String updatedName) throws Exception {
         String location = create(path, body);
         create(path, updated);
-        mvc.perform(put(location).contentType(MediaType.APPLICATION_JSON).content(updated))
+        mvc.perform(put(location).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON).content(updated))
                 .andExpect(status().isConflict());
         // A conflict must leave the original resource intact.
         mvc.perform(get(location)).andExpect(status().isOk())
@@ -112,7 +119,7 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                         .content(body.replace("Test", "x".repeat(301))))
                 .andExpect(status().isBadRequest());
         String location = create(path, body);
-        mvc.perform(put(location).contentType(MediaType.APPLICATION_JSON).content("{}"))
+        mvc.perform(put(location).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -122,9 +129,9 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
             String path, String body, String updated, String updatedName) throws Exception {
         String missing = path + "/9223372036854775807";
         mvc.perform(get(missing)).andExpect(status().isNotFound());
-        mvc.perform(put(missing).contentType(MediaType.APPLICATION_JSON).content(body))
+        mvc.perform(put(missing).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isNotFound());
-        mvc.perform(delete(missing)).andExpect(status().isNotFound());
+        mvc.perform(delete(missing).header("X-User-Id", adminId)).andExpect(status().isNotFound());
         mvc.perform(get(path + "/-1")).andExpect(status().isBadRequest());
         mvc.perform(get(path + "/abc")).andExpect(status().isBadRequest());
         mvc.perform(get(path).param("sort", "unknown,asc"))
