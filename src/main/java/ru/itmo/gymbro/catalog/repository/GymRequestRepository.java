@@ -12,6 +12,9 @@ public interface GymRequestRepository {
 
     Optional<GymRequest> findById(long id);
 
+    /** Must be called inside a write transaction; holds the lock until it completes. */
+    Optional<GymRequest> findByIdForUpdate(long id);
+
     Page<GymRequest> findAll(Pageable pageable);
 
     void deleteById(long id);
