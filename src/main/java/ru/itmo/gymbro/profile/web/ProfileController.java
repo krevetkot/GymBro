@@ -9,10 +9,15 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import ru.itmo.gymbro.profile.api.ChangeProfileGymsUseCase;
+import ru.itmo.gymbro.profile.api.ChangeProfileSportsUseCase;
 import ru.itmo.gymbro.profile.api.EditProfileUseCase;
 import ru.itmo.gymbro.profile.api.GetProfileUseCase;
 import ru.itmo.gymbro.profile.api.SavedProfile;
+import ru.itmo.gymbro.profile.dto.ProfileGymsWriteRequest;
 import ru.itmo.gymbro.profile.dto.ProfileResponse;
+import ru.itmo.gymbro.profile.dto.ProfileSportRequest;
+import ru.itmo.gymbro.profile.dto.ProfileSportsWriteRequest;
 import ru.itmo.gymbro.profile.dto.ProfileWriteRequest;
 
 import java.net.URI;
@@ -23,10 +28,26 @@ class ProfileController {
 
     private final GetProfileUseCase getProfile;
     private final EditProfileUseCase editProfile;
+    private final ChangeProfileSportsUseCase changeSports;
+    private final ChangeProfileGymsUseCase changeGyms;
 
-    ProfileController(GetProfileUseCase getProfile, EditProfileUseCase editProfile) {
+    ProfileController(GetProfileUseCase getProfile, EditProfileUseCase editProfile,
+                      ChangeProfileSportsUseCase changeSports, ChangeProfileGymsUseCase changeGyms) {
         this.getProfile = getProfile;
         this.editProfile = editProfile;
+        this.changeSports = changeSports;
+        this.changeGyms = changeGyms;
+    }
+
+    @PutMapping("/me/sports")
+    ProfileResponse replaceMySports(@Valid @RequestBody ProfileSportsWriteRequest request) {
+        return ProfileResponse.from(changeSports.replaceMySports(
+                request.getSports().stream().map(ProfileSportRequest::toUserSport).toList()));
+    }
+
+    @PutMapping("/me/gyms")
+    ProfileResponse replaceMyGyms(@Valid @RequestBody ProfileGymsWriteRequest request) {
+        return ProfileResponse.from(changeGyms.replaceMyGyms(request.getGymIds()));
     }
 
     @GetMapping("/{userId}")
