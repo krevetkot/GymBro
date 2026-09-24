@@ -1,5 +1,6 @@
 package ru.itmo.gymbro.matching.repository;
 
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import ru.itmo.gymbro.matching.model.Match;
 
@@ -9,9 +10,11 @@ import java.util.Optional;
 class JdbcMatchRepository implements MatchRepository {
 
     private final MatchDao dao;
+    private final JdbcClient jdbc;
 
-    JdbcMatchRepository(MatchDao dao) {
+    JdbcMatchRepository(MatchDao dao, JdbcClient jdbc) {
         this.dao = dao;
+        this.jdbc = jdbc;
     }
 
     @Override
@@ -29,5 +32,14 @@ class JdbcMatchRepository implements MatchRepository {
         return dao.findByUser1IdAndUser2Id(
                 Math.min(oneUserId, anotherUserId),
                 Math.max(oneUserId, anotherUserId));
+    }
+
+    @Override
+    public void lockPairUntilCommit(long oneUserId, long anotherUserId) {
+        String pairKey = "match:" + Math.min(oneUserId, anotherUserId) + ":" + Math.max(oneUserId, anotherUserId);
+        jdbc.sql("SELECT pg_advisory_xact_lock(hashtextextended(:pairKey, 0))")
+                .param("pairKey", pairKey)
+                .query((row, number) -> pairKey)
+                .single();
     }
 }

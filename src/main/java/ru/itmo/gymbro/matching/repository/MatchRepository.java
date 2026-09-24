@@ -11,4 +11,6 @@ public interface MatchRepository {
     Optional<Match> findById(long id);
 
     Optional<Match> findByPair(long oneUserId, long anotherUserId);
+
+    void lockPairUntilCommit(long oneUserId, long anotherUserId);
 }
