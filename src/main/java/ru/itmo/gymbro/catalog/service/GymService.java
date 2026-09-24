@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.itmo.gymbro.catalog.api.GymUseCases;
 import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.repository.GymRepository;
+import ru.itmo.gymbro.identity.api.CurrentUserAccess;
 import ru.itmo.gymbro.shared.api.ConflictException;
 import ru.itmo.gymbro.shared.api.NotFoundException;
 
@@ -17,9 +18,11 @@ import java.util.Set;
 class GymService implements GymUseCases {
 
     private final GymRepository gyms;
+    private final CurrentUserAccess access;
 
-    GymService(GymRepository gyms) {
+    GymService(GymRepository gyms, CurrentUserAccess access) {
         this.gyms = gyms;
+        this.access = access;
     }
 
     @Override
@@ -46,6 +49,7 @@ class GymService implements GymUseCases {
     @Override
     @Transactional
     public Gym update(long id, String name, String city, String address) {
+        access.requireAdmin();
         Gym existing = getById(id);
         Gym candidate = new Gym(id, name, city, address);
         if ((!existing.getCity().equals(candidate.getCity())
@@ -61,8 +65,8 @@ class GymService implements GymUseCases {
     @Override
     @Transactional
     public void delete(long id) {
+        access.requireAdmin();
         getById(id);
         gyms.deleteById(id);
     }
 }
-

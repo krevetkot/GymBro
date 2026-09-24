@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -31,7 +32,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/gyms")
 @Tag(name = "Залы")
-@SecurityRequirements
 @ApiResponse(responseCode = "400", description = "Некорректные поля или параметры запроса")
 class GymController {
 
@@ -41,6 +41,7 @@ class GymController {
         this.gyms = gyms;
     }
 
+    @SecurityRequirements
     @PostMapping
     @Operation(summary = "Создать запись в каталоге")
     @ApiResponse(responseCode = "201", description = "Запись создана",
@@ -52,6 +53,7 @@ class GymController {
         return ResponseEntity.created(URI.create("/api/v1/gyms/" + response.id())).body(response);
     }
 
+    @SecurityRequirements
     @GetMapping("/{id}")
     @Operation(summary = "Получить запись по идентификатору")
     @ApiResponse(responseCode = "200", description = "Запись найдена")
@@ -60,6 +62,7 @@ class GymController {
         return GymResponse.from(gyms.getById(id));
     }
 
+    @SecurityRequirements
     @GetMapping
     @Operation(summary = "Получить страницу каталога",
             description = "Нумерация страниц с нуля, размер по умолчанию 20, максимум 50. "
@@ -72,6 +75,9 @@ class GymController {
         return PageResponses.withTotalCount(gyms.getPage(pageable).map(GymResponse::from));
     }
 
+    @SecurityRequirement(name = "currentUser")
+    @ApiResponse(responseCode = "401", description = "Текущий пользователь не определён")
+    @ApiResponse(responseCode = "403", description = "Требуется активный администратор")
     @PutMapping("/{id}")
     @Operation(summary = "Обновить все поля записи")
     @ApiResponse(responseCode = "200", description = "Запись обновлена")
@@ -81,6 +87,9 @@ class GymController {
         return GymResponse.from(gyms.update(id, request.name(), request.city(), request.address()));
     }
 
+    @SecurityRequirement(name = "currentUser")
+    @ApiResponse(responseCode = "401", description = "Текущий пользователь не определён")
+    @ApiResponse(responseCode = "403", description = "Требуется активный администратор")
     @DeleteMapping("/{id}")
     @Operation(summary = "Удалить запись")
     @ApiResponse(responseCode = "204", description = "Запись удалена")
