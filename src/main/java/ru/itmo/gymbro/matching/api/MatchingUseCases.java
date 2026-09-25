@@ -9,9 +9,9 @@ import ru.itmo.gymbro.profile.model.UserProfile;
 
 public interface MatchingUseCases {
 
-    Slice<UserProfile> nextFeedCards(Pageable pageable);
+    public Slice<UserProfile> nextFeedCards(Pageable pageable);
 
-    LikeResponse like(long toUserId);
+    public LikeResponse like(long toUserId);
 
-    Page<MatchResponse> myMatches(Pageable pageable);
+    public Page<MatchResponse> myMatches(Pageable pageable);
 }

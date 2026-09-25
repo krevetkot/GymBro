@@ -6,14 +6,14 @@ import ru.itmo.gymbro.catalog.model.Gym;
 
 public interface GymUseCases {
 
-    Gym create(String name, String city, String address);
+    public Gym create(String name, String city, String address);
 
-    Gym getById(long id);
+    public Gym getById(long id);
 
-    Page<Gym> getPage(Pageable pageable);
+    public Page<Gym> getPage(Pageable pageable);
 
-    Gym update(long id, String name, String city, String address);
+    public Gym update(long id, String name, String city, String address);
 
-    void delete(long id);
+    public void delete(long id);
 }
 

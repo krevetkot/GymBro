@@ -2,8 +2,8 @@ package ru.itmo.gymbro.identity.api;
 
 public interface CurrentUserAccess {
 
-    long requireActiveUser();
+    public long requireActiveUser();
 
-    long requireAdmin();
+    public long requireAdmin();
 }
 

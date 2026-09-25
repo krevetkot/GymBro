@@ -23,7 +23,7 @@ public class User {
 
     @NotBlank
     @Size(max = 255)
-    private String passwordHash;
+    private String password;
 
     @NotNull
     private Role role;
@@ -34,10 +34,10 @@ public class User {
     @NotNull
     private Instant createdAt;
 
-    public User(Long id, String email, String passwordHash, Role role, UserStatus status, Instant createdAt) {
+    public User(Long id, String email, String password, Role role, UserStatus status, Instant createdAt) {
         this.id = id;
         this.email = normalizeEmail(email);
-        this.passwordHash = checkPassword(passwordHash);
+        this.password = checkPassword(password);
         if (role == null) {
             throw new IllegalArgumentException("Роль обязательна");
         }
@@ -49,16 +49,16 @@ public class User {
         this.createdAt = createdAt == null ? Instant.now() : createdAt;
     }
 
-    public static User register(String email, String passwordHash) {
-        return new User(null, email, passwordHash, Role.USER, UserStatus.ACTIVE, Instant.now());
+    public static User register(String email, String password) {
+        return new User(null, email, password, Role.USER, UserStatus.ACTIVE, Instant.now());
     }
 
     public void changeEmail(String newEmail) {
         this.email = normalizeEmail(newEmail);
     }
 
-    public void changePassword(String newPasswordHash) {
-        this.passwordHash = checkPassword(newPasswordHash);
+    public void changePassword(String newPassword) {
+        this.password = checkPassword(newPassword);
     }
 
     public void promoteToTrainer() {
@@ -89,8 +89,8 @@ public class User {
         return email;
     }
 
-    public String getPasswordHash() {
-        return passwordHash;
+    public String getPassword() {
+        return password;
     }
 
     public Role getRole() {

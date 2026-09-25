@@ -8,13 +8,13 @@ import java.util.Optional;
 
 public interface MatchRepository {
 
-    Match save(Match match);
+    public Match save(Match match);
 
-    Optional<Match> findById(long id);
+    public Optional<Match> findById(long id);
 
-    Optional<Match> findByPair(long oneUserId, long anotherUserId);
+    public Optional<Match> findByPair(long oneUserId, long anotherUserId);
 
-    Page<Match> findInvolving(long userId, Pageable pageable);
+    public Page<Match> findInvolving(long userId, Pageable pageable);
 
-    void lockPairUntilCommit(long oneUserId, long anotherUserId);
+    public void lockPairUntilCommit(long oneUserId, long anotherUserId);
 }

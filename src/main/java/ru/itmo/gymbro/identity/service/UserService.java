@@ -4,8 +4,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.itmo.gymbro.identity.api.CurrentUserAccess;
@@ -26,7 +24,6 @@ class UserService implements UserUseCases, CurrentUserAccess {
 
     private final UserRepository users;
     private final CurrentUserProvider currentUser;
-    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     UserService(UserRepository users, CurrentUserProvider currentUser) {
         this.users = users;
@@ -35,12 +32,11 @@ class UserService implements UserUseCases, CurrentUserAccess {
 
     @Override
     @Transactional
-    public User register(String email, String rawPassword) {
-        String passwordHash = hash(rawPassword);
+    public User register(String email, String password) {
         if (users.existsByEmail(email)) {
             throw new ConflictException("Пользователь с email " + email + " уже зарегистрирован");
         }
-        return users.save(User.register(email, passwordHash));
+        return users.save(User.register(email, password));
     }
 
     @Override
@@ -56,7 +52,7 @@ class UserService implements UserUseCases, CurrentUserAccess {
 
     @Override
     @Transactional
-    public User update(long id, String newEmail, String newRawPassword) {
+    public User update(long id, String newEmail, String newPassword) {
         User user = getById(id);
         if (newEmail != null) {
             String currentEmail = user.getEmail();
@@ -65,8 +61,8 @@ class UserService implements UserUseCases, CurrentUserAccess {
                 throw new ConflictException("Пользователь с email " + user.getEmail() + " уже зарегистрирован");
             }
         }
-        if (newRawPassword != null) {
-            user.changePassword(hash(newRawPassword));
+        if (newPassword != null) {
+            user.changePassword(newPassword);
         }
         return users.save(user);
     }
@@ -107,12 +103,5 @@ class UserService implements UserUseCases, CurrentUserAccess {
             throw new ForbiddenException("Пользователь заблокирован");
         }
         return user;
-    }
-
-    private String hash(String rawPassword) {
-        if (rawPassword == null || rawPassword.isBlank()) {
-            throw new IllegalArgumentException("Пароль обязателен");
-        }
-        return passwordEncoder.encode(rawPassword);
     }
 }

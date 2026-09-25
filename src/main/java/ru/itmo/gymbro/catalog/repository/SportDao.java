@@ -6,5 +6,5 @@ import ru.itmo.gymbro.catalog.model.Sport;
 
 interface SportDao extends ListCrudRepository<Sport, Long>, PagingAndSortingRepository<Sport, Long> {
 
-    boolean existsByName(String name);
+    public boolean existsByName(String name);
 }

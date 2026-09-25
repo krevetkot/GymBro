@@ -8,15 +8,15 @@ import java.util.Set;
 
 public interface UserUseCases {
 
-    User register(String email, String rawPassword);
+    public User register(String email, String password);
 
-    User getById(long id);
+    public User getById(long id);
 
-    Page<User> getPage(Pageable pageable);
+    public Page<User> getPage(Pageable pageable);
 
-    User update(long id, String newEmail, String newRawPassword);
+    public User update(long id, String newEmail, String newPassword);
 
-    void delete(long id);
+    public void delete(long id);
 
-    Set<Long> bannedUserIds();
+    public Set<Long> bannedUserIds();
 }

@@ -6,12 +6,12 @@ import ru.itmo.gymbro.catalog.model.Sport;
 
 public interface SportUseCases {
 
-    Sport create(String name);
+    public Sport create(String name);
 
-    Sport getById(long id);
+    public Sport getById(long id);
 
-    Page<Sport> getPage(Pageable pageable);
+    public Page<Sport> getPage(Pageable pageable);
 
-    void delete(long id);
+    public void delete(long id);
 }
 

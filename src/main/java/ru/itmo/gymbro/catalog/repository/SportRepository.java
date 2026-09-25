@@ -8,15 +8,15 @@ import java.util.Optional;
 
 public interface SportRepository {
 
-    Sport save(Sport sport);
+    public Sport save(Sport sport);
 
-    Optional<Sport> findById(long id);
+    public Optional<Sport> findById(long id);
 
-    Page<Sport> findAll(Pageable pageable);
+    public Page<Sport> findAll(Pageable pageable);
 
-    boolean existsById(long id);
+    public boolean existsById(long id);
 
-    boolean existsByName(String name);
+    public boolean existsByName(String name);
 
-    void deleteById(long id);
+    public void deleteById(long id);
 }

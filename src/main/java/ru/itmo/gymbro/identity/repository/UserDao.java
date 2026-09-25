@@ -10,10 +10,10 @@ import java.util.Optional;
 
 interface UserDao extends ListCrudRepository<User, Long>, PagingAndSortingRepository<User, Long> {
 
-    Optional<User> findByEmail(String email);
+    public Optional<User> findByEmail(String email);
 
-    boolean existsByEmail(String email);
+    public boolean existsByEmail(String email);
 
     @Query("SELECT id FROM users WHERE status = 'BANNED'")
-    List<Long> findBannedIds();
+    public List<Long> findBannedIds();
 }

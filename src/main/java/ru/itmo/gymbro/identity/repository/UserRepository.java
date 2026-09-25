@@ -9,19 +9,19 @@ import java.util.Optional;
 
 public interface UserRepository {
 
-    User save(User user);
+    public User save(User user);
 
-    Optional<User> findById(long id);
+    public Optional<User> findById(long id);
 
-    Optional<User> findByEmail(String email);
+    public Optional<User> findByEmail(String email);
 
-    boolean existsById(long id);
+    public boolean existsById(long id);
 
-    boolean existsByEmail(String email);
+    public boolean existsByEmail(String email);
 
-    Page<User> findAll(Pageable pageable);
+    public Page<User> findAll(Pageable pageable);
 
-    void deleteById(long id);
+    public void deleteById(long id);
 
-    List<Long> findBannedIds();
+    public List<Long> findBannedIds();
 }

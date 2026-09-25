@@ -11,13 +11,13 @@ import java.util.Set;
 
 public interface ProfileUseCases {
 
-    UserProfile getByUserId(long userId);
+    public UserProfile getByUserId(long userId);
 
-    SavedProfile saveMine(String name, LocalDate birthDate, String about);
+    public SavedProfile saveMine(String name, LocalDate birthDate, String about);
 
-    UserProfile replaceMySports(List<UserSport> sports);
+    public UserProfile replaceMySports(List<UserSport> sports);
 
-    UserProfile replaceMyGyms(List<Long> gymIds);
+    public UserProfile replaceMyGyms(List<Long> gymIds);
 
-    Slice<UserProfile> findFeedCandidates(long viewerUserId, Set<Long> excludedUserIds, Pageable pageable);
+    public Slice<UserProfile> findFeedCandidates(long viewerUserId, Set<Long> excludedUserIds, Pageable pageable);
 }

@@ -9,10 +9,10 @@ import java.util.Optional;
 
 interface UserProfileDao extends ListCrudRepository<UserProfile, Long> {
 
-    Optional<UserProfile> findByUserId(long userId);
+    public Optional<UserProfile> findByUserId(long userId);
 
     @Lock(LockMode.PESSIMISTIC_WRITE)
-    Optional<UserProfile> findLockedByUserId(long userId);
+    public Optional<UserProfile> findLockedByUserId(long userId);
 
-    boolean existsByUserId(long userId);
+    public boolean existsByUserId(long userId);
 }

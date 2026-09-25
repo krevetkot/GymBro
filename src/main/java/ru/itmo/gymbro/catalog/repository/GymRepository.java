@@ -8,15 +8,15 @@ import java.util.Optional;
 
 public interface GymRepository {
 
-    Gym save(Gym gym);
+    public Gym save(Gym gym);
 
-    Optional<Gym> findById(long id);
+    public Optional<Gym> findById(long id);
 
-    Page<Gym> findAll(Pageable pageable);
+    public Page<Gym> findAll(Pageable pageable);
 
-    boolean existsById(long id);
+    public boolean existsById(long id);
 
-    boolean existsByCityAndAddress(String city, String address);
+    public boolean existsByCityAndAddress(String city, String address);
 
-    void deleteById(long id);
+    public void deleteById(long id);
 }

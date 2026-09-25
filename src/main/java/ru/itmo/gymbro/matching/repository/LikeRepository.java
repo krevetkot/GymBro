@@ -6,9 +6,9 @@ import java.util.List;
 
 public interface LikeRepository {
 
-    Like save(Like like);
+    public Like save(Like like);
 
-    boolean existsBetween(long fromUserId, long toUserId);
+    public boolean existsBetween(long fromUserId, long toUserId);
 
-    List<Long> findLikedUserIds(long fromUserId);
+    public List<Long> findLikedUserIds(long fromUserId);
 }
