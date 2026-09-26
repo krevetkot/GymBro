@@ -1,9 +1,11 @@
+
 spring:
+
   application:
     name: gymbro
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/gymbro}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/gymbro}
     username: ${DB_USER:gymbro}
     password: ${DB_PASSWORD:gymbro}
     hikari:
@@ -22,8 +24,12 @@ spring:
   jackson:
     default-property-inclusion: non_null
 
+gymbro:
+  jdbc:
+    schema-validation: validate
+
 server:
-  port: ${APP_PORT:8080}
+  port: 8888
 
 springdoc:
   swagger-ui:
