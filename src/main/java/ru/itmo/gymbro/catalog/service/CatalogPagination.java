@@ -8,9 +8,6 @@ import java.util.Set;
 
 final class CatalogPagination {
 
-    private CatalogPagination() {
-    }
-
     static Pageable validate(Pageable pageable, Set<String> allowedProperties) {
         if (pageable.isUnpaged() || pageable.getPageSize() > 50) {
             throw new IllegalArgumentException("Размер страницы должен быть от 1 до 50");

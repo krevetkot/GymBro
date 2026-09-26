@@ -61,11 +61,10 @@ class UserApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.role").value("USER"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.createdAt").isNotEmpty())
-                .andExpect(jsonPath("$.password").doesNotExist())
-                .andExpect(jsonPath("$.passwordHash").doesNotExist());
+                .andExpect(jsonPath("$.password").doesNotExist());
 
         User stored = users.findByEmail("anna@mail.ru").orElseThrow();
-        assertThat(stored.getPasswordHash()).isNotEqualTo("secret-password").startsWith("$2");
+        assertThat(stored.getPassword()).isEqualTo("secret-password");
     }
 
     @Test
@@ -76,7 +75,7 @@ class UserApiIntegrationTest extends AbstractIntegrationTest {
         mvc.perform(get(location))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("reader@mail.ru"))
-                .andExpect(jsonPath("$.passwordHash").doesNotExist());
+                .andExpect(jsonPath("$.password").doesNotExist());
     }
 
     @Test
@@ -140,7 +139,7 @@ class UserApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string("X-Total-Count", String.valueOf(before + 3)))
                 .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].passwordHash").doesNotExist());
+                .andExpect(jsonPath("$[0].password").doesNotExist());
     }
 
     @Test
@@ -159,7 +158,7 @@ class UserApiIntegrationTest extends AbstractIntegrationTest {
         saveUsers("ordered", 4);
 
         List<Integer> first = ids(mvc.perform(get(USERS).param("page", "0").param("size", "2")
-                .param("sort", "passwordHash,desc")));
+                .param("sort", "password,desc")));
         List<Integer> second = ids(mvc.perform(get(USERS).param("page", "1").param("size", "2")
                 .param("sort", "unknown")));
 
@@ -183,18 +182,15 @@ class UserApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("PATCH пароля сохраняет новый хэш")
+    @DisplayName("PATCH пароля сохраняет новый пароль")
     void updatesPassword() throws Exception {
         String location = registeredLocation("secure@mail.ru");
-        String oldHash = users.findByEmail("secure@mail.ru").orElseThrow().getPasswordHash();
-
         mvc.perform(patch(location).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"password\":\"brand-new-password\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("secure@mail.ru"));
 
-        String newHash = users.findByEmail("secure@mail.ru").orElseThrow().getPasswordHash();
-        assertThat(newHash).isNotEqualTo(oldHash).startsWith("$2");
+        assertThat(users.findByEmail("secure@mail.ru").orElseThrow().getPassword()).isEqualTo("brand-new-password");
     }
 
     @Test

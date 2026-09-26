@@ -8,8 +8,8 @@ import java.util.List;
 
 interface LikeDao extends ListCrudRepository<Like, Long> {
 
-    boolean existsByFromUserIdAndToUserId(long fromUserId, long toUserId);
+    public boolean existsByFromUserIdAndToUserId(long fromUserId, long toUserId);
 
     @Query("SELECT to_user_id FROM likes WHERE from_user_id = :fromUserId")
-    List<Long> findLikedUserIds(long fromUserId);
+    public List<Long> findLikedUserIds(long fromUserId);
 }

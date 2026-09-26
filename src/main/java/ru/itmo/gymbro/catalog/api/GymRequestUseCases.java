@@ -6,11 +6,11 @@ import ru.itmo.gymbro.catalog.model.GymRequest;
 
 public interface GymRequestUseCases {
 
-    GymRequest submit(String name, String city, String address);
+    public GymRequest submit(String name, String city, String address);
 
-    Page<GymRequest> getPage(Pageable pageable);
+    public Page<GymRequest> getPage(Pageable pageable);
 
-    GymRequest approve(long requestId);
+    public GymRequest approve(long requestId);
 
-    GymRequest reject(long requestId);
+    public GymRequest reject(long requestId);
 }

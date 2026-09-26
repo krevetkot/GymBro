@@ -8,14 +8,13 @@ import java.util.Optional;
 
 public interface GymRequestRepository {
 
-    GymRequest save(GymRequest request);
+    public GymRequest save(GymRequest request);
 
-    Optional<GymRequest> findById(long id);
+    public Optional<GymRequest> findById(long id);
 
-    /** Must be called inside a write transaction; holds the lock until it completes. */
-    Optional<GymRequest> findByIdForUpdate(long id);
+    public Optional<GymRequest> findByIdForUpdate(long id);
 
-    Page<GymRequest> findAll(Pageable pageable);
+    public Page<GymRequest> findAll(Pageable pageable);
 
-    void deleteById(long id);
+    public void deleteById(long id);
 }

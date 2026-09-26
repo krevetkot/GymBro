@@ -9,7 +9,7 @@ import java.util.Optional;
 
 interface MatchDao extends ListCrudRepository<Match, Long> {
 
-    Optional<Match> findByUser1IdAndUser2Id(long user1Id, long user2Id);
+    public Optional<Match> findByUser1IdAndUser2Id(long user1Id, long user2Id);
 
-    Page<Match> findByUser1IdOrUser2Id(long user1Id, long user2Id, Pageable pageable);
+    public Page<Match> findByUser1IdOrUser2Id(long user1Id, long user2Id, Pageable pageable);
 }

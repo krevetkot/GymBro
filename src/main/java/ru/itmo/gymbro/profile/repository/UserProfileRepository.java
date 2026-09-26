@@ -9,17 +9,17 @@ import java.util.Optional;
 
 public interface UserProfileRepository {
 
-    UserProfile save(UserProfile profile);
+    public UserProfile save(UserProfile profile);
 
-    Optional<UserProfile> findById(long id);
+    public Optional<UserProfile> findById(long id);
 
-    Optional<UserProfile> findByUserId(long userId);
+    public Optional<UserProfile> findByUserId(long userId);
 
-    Optional<UserProfile> findByUserIdForUpdate(long userId);
+    public Optional<UserProfile> findByUserIdForUpdate(long userId);
 
-    boolean existsByUserId(long userId);
+    public boolean existsByUserId(long userId);
 
-    void deleteByUserId(long userId);
+    public void deleteByUserId(long userId);
 
-    Slice<UserProfile> findFeed(long viewerProfileId, Collection<Long> excludedUserIds, Pageable pageable);
+    public Slice<UserProfile> findFeed(long viewerProfileId, Collection<Long> excludedUserIds, Pageable pageable);
 }

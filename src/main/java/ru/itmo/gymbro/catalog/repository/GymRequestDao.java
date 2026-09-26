@@ -12,5 +12,5 @@ interface GymRequestDao extends ListCrudRepository<GymRequest, Long>,
         PagingAndSortingRepository<GymRequest, Long> {
 
     @Lock(LockMode.PESSIMISTIC_WRITE)
-    Optional<GymRequest> findLockedById(long id);
+    public Optional<GymRequest> findLockedById(long id);
 }

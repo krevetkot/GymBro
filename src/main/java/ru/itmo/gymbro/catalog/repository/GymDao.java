@@ -6,5 +6,5 @@ import ru.itmo.gymbro.catalog.model.Gym;
 
 interface GymDao extends ListCrudRepository<Gym, Long>, PagingAndSortingRepository<Gym, Long> {
 
-    boolean existsByCityAndAddress(String city, String address);
+    public boolean existsByCityAndAddress(String city, String address);
 }

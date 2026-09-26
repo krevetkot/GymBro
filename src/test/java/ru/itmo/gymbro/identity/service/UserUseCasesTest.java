@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.identity.api.UserUseCases;
 import ru.itmo.gymbro.identity.model.Role;
@@ -23,16 +22,15 @@ class UserUseCasesTest extends AbstractIntegrationTest {
     private UserUseCases users;
 
     @Test
-    @DisplayName("Регистрация создаёт активного пользователя с хэшем BCrypt вместо пароля")
-    void registersUserWithHashedPassword() {
+    @DisplayName("Регистрация создаёт активного пользователя с переданным паролем")
+    void registersUserWithPassword() {
         User user = users.register("New@Mail.ru", "secret-password");
 
         User stored = users.getById(user.getId());
         assertThat(stored.getEmail()).isEqualTo("new@mail.ru");
         assertThat(stored.getRole()).isEqualTo(Role.USER);
         assertThat(stored.getStatus()).isEqualTo(UserStatus.ACTIVE);
-        assertThat(stored.getPasswordHash()).isNotEqualTo("secret-password").startsWith("$2");
-        assertThat(new BCryptPasswordEncoder().matches("secret-password", stored.getPasswordHash())).isTrue();
+        assertThat(stored.getPassword()).isEqualTo("secret-password");
     }
 
     @Test

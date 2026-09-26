@@ -30,7 +30,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/users")
-@Tag(name = "Пользователи", description = "Учётные записи. Ответы не содержат пароль или его хеш.")
+@Tag(name = "Пользователи", description = "Учётные записи. Ответы не содержат пароль.")
 @SecurityRequirements
 @ApiResponse(responseCode = "400", description = "Некорректные поля или параметры запроса")
 class UserController {
@@ -43,7 +43,7 @@ class UserController {
 
     @PostMapping
     @Operation(summary = "Зарегистрировать пользователя",
-            description = "Создаёт активного пользователя с ролью USER. Пароль сохраняется как BCrypt-хеш.")
+            description = "Создаёт активного пользователя с ролью USER.")
     @ApiResponse(responseCode = "201", description = "Пользователь создан; Location содержит адрес записи")
     @ApiResponse(responseCode = "409", description = "Email уже занят")
     ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterUserRequest request) {

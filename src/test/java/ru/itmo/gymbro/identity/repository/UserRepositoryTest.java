@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.identity.model.Role;
 import ru.itmo.gymbro.identity.model.User;
@@ -27,7 +26,7 @@ class UserRepositoryTest extends AbstractIntegrationTest {
 
         User found = users.findById(saved.getId()).orElseThrow();
         assertThat(found.getEmail()).isEqualTo("ksenia@mail.ru");
-        assertThat(found.getPasswordHash()).isEqualTo("hash");
+        assertThat(found.getPassword()).isEqualTo("hash");
         assertThat(found.getRole()).isEqualTo(Role.USER);
         assertThat(found.getStatus()).isEqualTo(UserStatus.ACTIVE);
         assertThat(found.getCreatedAt()).isNotNull();
@@ -87,6 +86,6 @@ class UserRepositoryTest extends AbstractIntegrationTest {
 
         assertThat(admin.getRole()).isEqualTo(Role.ADMIN);
         assertThat(admin.getStatus()).isEqualTo(UserStatus.ACTIVE);
-        assertThat(new BCryptPasswordEncoder().matches("admin12345", admin.getPasswordHash())).isTrue();
+        assertThat(admin.getPassword()).isEqualTo("admin12345");
     }
 }
