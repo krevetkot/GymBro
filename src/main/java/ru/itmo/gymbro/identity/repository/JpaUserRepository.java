@@ -9,17 +9,17 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-class JdbcUserRepository implements UserRepository {
+class JpaUserRepository implements UserRepository {
 
     private final UserDao dao;
 
-    JdbcUserRepository(UserDao dao) {
+    JpaUserRepository(UserDao dao) {
         this.dao = dao;
     }
 
     @Override
     public User save(User user) {
-        return dao.save(user);
+        return dao.saveAndFlush(user);
     }
 
     @Override
@@ -50,6 +50,7 @@ class JdbcUserRepository implements UserRepository {
     @Override
     public void deleteById(long id) {
         dao.deleteById(id);
+        dao.flush();
     }
 
     @Override

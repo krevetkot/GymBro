@@ -1,19 +1,26 @@
 package ru.itmo.gymbro.catalog.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.Instant;
 import java.util.Objects;
 
-@Table("gym_requests")
+@Entity
+@Table(name = "gym_requests")
 public class GymRequest {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Positive
@@ -32,6 +39,7 @@ public class GymRequest {
     private String address;
 
     @NotNull
+    @Enumerated(EnumType.STRING)
     private RequestStatus status;
 
     @Positive
@@ -42,6 +50,9 @@ public class GymRequest {
 
     @NotNull
     private Instant createdAt;
+
+    protected GymRequest() {
+    }
 
     public GymRequest(Long id, long authorId, String name, String city, String address,
                       RequestStatus status, Long reviewedBy, Long gymId, Instant createdAt) {

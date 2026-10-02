@@ -55,11 +55,12 @@ class UserService implements UserUseCases, CurrentUserAccess {
     public User update(long id, String newEmail, String newPassword) {
         User user = getById(id);
         if (newEmail != null) {
-            String currentEmail = user.getEmail();
+            users.findByEmail(newEmail)
+                    .filter(other -> !other.getId().equals(user.getId()))
+                    .ifPresent(other -> {
+                        throw new ConflictException("Пользователь с email " + other.getEmail() + " уже зарегистрирован");
+                    });
             user.changeEmail(newEmail);
-            if (!user.getEmail().equals(currentEmail) && users.existsByEmail(user.getEmail())) {
-                throw new ConflictException("Пользователь с email " + user.getEmail() + " уже зарегистрирован");
-            }
         }
         if (newPassword != null) {
             user.changePassword(newPassword);

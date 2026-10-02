@@ -1,16 +1,14 @@
 package ru.itmo.gymbro.catalog.repository;
 
-import org.springframework.data.repository.ListCrudRepository;
-import org.springframework.data.repository.PagingAndSortingRepository;
-import org.springframework.data.relational.core.sql.LockMode;
-import org.springframework.data.relational.repository.Lock;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import ru.itmo.gymbro.catalog.model.GymRequest;
 
 import java.util.Optional;
 
-interface GymRequestDao extends ListCrudRepository<GymRequest, Long>,
-        PagingAndSortingRepository<GymRequest, Long> {
+interface GymRequestDao extends JpaRepository<GymRequest, Long> {
 
-    @Lock(LockMode.PESSIMISTIC_WRITE)
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     public Optional<GymRequest> findLockedById(long id);
 }

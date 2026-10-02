@@ -14,6 +14,9 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
 
+  jpa:
+    open-in-view: false
+
   data:
     web:
       pageable:
@@ -23,10 +26,6 @@ spring:
 
   jackson:
     default-property-inclusion: non_null
-
-gymbro:
-  jdbc:
-    schema-validation: validate
 
 server:
   port: 8888
@@ -42,5 +41,5 @@ springdoc:
 
 logging:
   level:
-    org.springframework.jdbc.core: ${SQL_LOG_LEVEL:INFO}
+    org.hibernate.SQL: ${SQL_LOG_LEVEL:INFO}
     liquibase: INFO

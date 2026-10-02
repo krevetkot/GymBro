@@ -2,26 +2,23 @@ package ru.itmo.gymbro.matching.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import ru.itmo.gymbro.matching.model.Match;
 
 import java.util.Optional;
 
 @Repository
-class JdbcMatchRepository implements MatchRepository {
+class JpaMatchRepository implements MatchRepository {
 
     private final MatchDao dao;
-    private final JdbcClient jdbc;
 
-    JdbcMatchRepository(MatchDao dao, JdbcClient jdbc) {
+    JpaMatchRepository(MatchDao dao) {
         this.dao = dao;
-        this.jdbc = jdbc;
     }
 
     @Override
     public Match save(Match match) {
-        return dao.save(match);
+        return dao.saveAndFlush(match);
     }
 
     @Override
@@ -43,10 +40,7 @@ class JdbcMatchRepository implements MatchRepository {
 
     @Override
     public void lockPairUntilCommit(long oneUserId, long anotherUserId) {
-        String pairKey = "match:" + Math.min(oneUserId, anotherUserId) + ":" + Math.max(oneUserId, anotherUserId);
-        jdbc.sql("SELECT pg_advisory_xact_lock(hashtextextended(:pairKey, 0))")
-                .param("pairKey", pairKey)
-                .query((row, number) -> pairKey)
-                .single();
+        dao.lockPairUntilCommit(
+                "match:" + Math.min(oneUserId, anotherUserId) + ":" + Math.max(oneUserId, anotherUserId));
     }
 }

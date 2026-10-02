@@ -8,17 +8,17 @@ import ru.itmo.gymbro.catalog.model.GymRequest;
 import java.util.Optional;
 
 @Repository
-class JdbcGymRequestRepository implements GymRequestRepository {
+class JpaGymRequestRepository implements GymRequestRepository {
 
     private final GymRequestDao dao;
 
-    JdbcGymRequestRepository(GymRequestDao dao) {
+    JpaGymRequestRepository(GymRequestDao dao) {
         this.dao = dao;
     }
 
     @Override
     public GymRequest save(GymRequest request) {
-        return dao.save(request);
+        return dao.saveAndFlush(request);
     }
 
     @Override
@@ -39,5 +39,6 @@ class JdbcGymRequestRepository implements GymRequestRepository {
     @Override
     public void deleteById(long id) {
         dao.deleteById(id);
+        dao.flush();
     }
 }

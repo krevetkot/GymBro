@@ -1,19 +1,26 @@
 package ru.itmo.gymbro.identity.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.Instant;
 import java.util.Objects;
 
-@Table("users")
+@Entity
+@Table(name = "users")
 public class User {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotBlank
@@ -26,13 +33,18 @@ public class User {
     private String password;
 
     @NotNull
+    @Enumerated(EnumType.STRING)
     private Role role;
 
     @NotNull
+    @Enumerated(EnumType.STRING)
     private UserStatus status;
 
     @NotNull
     private Instant createdAt;
+
+    protected User() {
+    }
 
     public User(Long id, String email, String password, Role role, UserStatus status, Instant createdAt) {
         this.id = id;

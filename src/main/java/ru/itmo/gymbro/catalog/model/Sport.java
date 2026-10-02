@@ -1,21 +1,29 @@
 package ru.itmo.gymbro.catalog.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Table;
 
 import java.util.Objects;
 
-@Table("sports")
+@Entity
+@Table(name = "sports")
 public class Sport {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotBlank
     @Size(max = 100)
     private String name;
+
+    protected Sport() {
+    }
 
     public Sport(Long id, String name) {
         this.id = id;

@@ -1,14 +1,20 @@
 package ru.itmo.gymbro.profile.model;
 
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.MappedCollection;
-import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -19,10 +25,12 @@ import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 
-@Table("user_profiles")
+@Entity
+@Table(name = "user_profiles")
 public class UserProfile {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Positive
@@ -40,16 +48,21 @@ public class UserProfile {
 
     @Valid
     @NotNull
-    @MappedCollection(idColumn = "profile_id")
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JoinColumn(name = "profile_id", nullable = false)
     private Set<UserSport> sports;
 
     @Valid
     @NotNull
-    @MappedCollection(idColumn = "profile_id")
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JoinColumn(name = "profile_id", nullable = false)
     private Set<UserGym> gyms;
 
     @NotNull
     private Instant updatedAt;
+
+    protected UserProfile() {
+    }
 
     public UserProfile(Long id, long userId, String name, LocalDate birthDate, String about,
                        Set<UserSport> sports, Set<UserGym> gyms, Instant updatedAt) {
@@ -78,12 +91,21 @@ public class UserProfile {
     }
 
     public void replaceSports(Collection<UserSport> newSports) {
-        this.sports = new LinkedHashSet<>(newSports == null ? Set.of() : newSports);
+        Collection<UserSport> wanted = newSports == null ? Set.of() : newSports;
+        sports.removeIf(sport -> !wanted.contains(sport));
+        for (UserSport sport : wanted) {
+            sports.stream()
+                    .filter(sport::equals)
+                    .findFirst()
+                    .ifPresentOrElse(existing -> existing.changeLevel(sport.getLevel()), () -> sports.add(sport));
+        }
         touch();
     }
 
     public void replaceGyms(Collection<UserGym> newGyms) {
-        this.gyms = new LinkedHashSet<>(newGyms == null ? Set.of() : newGyms);
+        Collection<UserGym> wanted = newGyms == null ? Set.of() : newGyms;
+        gyms.removeIf(gym -> !wanted.contains(gym));
+        gyms.addAll(wanted);
         touch();
     }
 

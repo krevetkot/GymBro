@@ -3,31 +3,31 @@ package ru.itmo.gymbro.catalog.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
-import ru.itmo.gymbro.catalog.model.Gym;
+import ru.itmo.gymbro.catalog.model.Sport;
 
 import java.util.Optional;
 
 @Repository
-class JdbcGymRepository implements GymRepository {
+class JpaSportRepository implements SportRepository {
 
-    private final GymDao dao;
+    private final SportDao dao;
 
-    JdbcGymRepository(GymDao dao) {
+    JpaSportRepository(SportDao dao) {
         this.dao = dao;
     }
 
     @Override
-    public Gym save(Gym gym) {
-        return dao.save(gym);
+    public Sport save(Sport sport) {
+        return dao.saveAndFlush(sport);
     }
 
     @Override
-    public Optional<Gym> findById(long id) {
+    public Optional<Sport> findById(long id) {
         return dao.findById(id);
     }
 
     @Override
-    public Page<Gym> findAll(Pageable pageable) {
+    public Page<Sport> findAll(Pageable pageable) {
         return dao.findAll(pageable);
     }
 
@@ -37,14 +37,13 @@ class JdbcGymRepository implements GymRepository {
     }
 
     @Override
-    public boolean existsByCityAndAddress(String city, String address) {
-        return dao.existsByCityAndAddress(
-                city == null ? null : city.trim(),
-                address == null ? null : address.trim());
+    public boolean existsByName(String name) {
+        return dao.existsByName(name == null ? null : name.trim());
     }
 
     @Override
     public void deleteById(long id) {
         dao.deleteById(id);
+        dao.flush();
     }
 }

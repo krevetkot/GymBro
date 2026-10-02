@@ -3,7 +3,6 @@ package ru.itmo.gymbro.profile.repository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import ru.itmo.gymbro.profile.model.UserProfile;
 
@@ -15,34 +14,17 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Repository
-class JdbcUserProfileRepository implements UserProfileRepository {
-
-    private static final String FEED_PAGE = """
-            SELECT p.id
-            FROM user_profiles p
-            WHERE p.user_id NOT IN (:excludedUserIds)
-            ORDER BY
-                (SELECT COUNT(*) FROM user_sports s
-                 WHERE s.profile_id = p.id
-                   AND s.sport_id IN (SELECT sport_id FROM user_sports WHERE profile_id = :viewerProfileId))
-              + (SELECT COUNT(*) FROM user_gyms g
-                 WHERE g.profile_id = p.id
-                   AND g.gym_id IN (SELECT gym_id FROM user_gyms WHERE profile_id = :viewerProfileId)) DESC,
-                p.id
-            LIMIT :limit OFFSET :offset
-            """;
+class JpaUserProfileRepository implements UserProfileRepository {
 
     private final UserProfileDao dao;
-    private final JdbcClient jdbc;
 
-    JdbcUserProfileRepository(UserProfileDao dao, JdbcClient jdbc) {
+    JpaUserProfileRepository(UserProfileDao dao) {
         this.dao = dao;
-        this.jdbc = jdbc;
     }
 
     @Override
     public UserProfile save(UserProfile profile) {
-        return dao.save(profile);
+        return dao.saveAndFlush(profile);
     }
 
     @Override
@@ -67,18 +49,16 @@ class JdbcUserProfileRepository implements UserProfileRepository {
 
     @Override
     public void deleteByUserId(long userId) {
-        dao.findByUserId(userId).ifPresent(dao::delete);
+        dao.findByUserId(userId).ifPresent(profile -> {
+            dao.delete(profile);
+            dao.flush();
+        });
     }
 
     @Override
     public Slice<UserProfile> findFeed(long viewerProfileId, Collection<Long> excludedUserIds, Pageable pageable) {
-        List<Long> ids = jdbc.sql(FEED_PAGE)
-                .param("excludedUserIds", excludedUserIds)
-                .param("viewerProfileId", viewerProfileId)
-                .param("limit", pageable.getPageSize() + 1)
-                .param("offset", pageable.getOffset())
-                .query(Long.class)
-                .list();
+        List<Long> ids = dao.findFeedProfileIds(
+                viewerProfileId, excludedUserIds, pageable.getPageSize() + 1, pageable.getOffset());
         boolean hasNext = ids.size() > pageable.getPageSize();
         List<Long> pageIds = hasNext ? ids.subList(0, pageable.getPageSize()) : ids;
         Map<Long, UserProfile> byId = dao.findAllById(pageIds).stream()

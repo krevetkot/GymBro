@@ -6,17 +6,17 @@ import ru.itmo.gymbro.matching.model.Like;
 import java.util.List;
 
 @Repository
-class JdbcLikeRepository implements LikeRepository {
+class JpaLikeRepository implements LikeRepository {
 
     private final LikeDao dao;
 
-    JdbcLikeRepository(LikeDao dao) {
+    JpaLikeRepository(LikeDao dao) {
         this.dao = dao;
     }
 
     @Override
     public Like save(Like like) {
-        return dao.save(like);
+        return dao.saveAndFlush(like);
     }
 
     @Override
