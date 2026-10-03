@@ -1,5 +1,6 @@
 package ru.itmo.gymbro.catalog.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -40,6 +41,7 @@ public class GymRequest {
 
     @NotNull
     @Enumerated(EnumType.STRING)
+    @Column(length = 16)
     private RequestStatus status;
 
     @Positive

@@ -1,5 +1,6 @@
 package ru.itmo.gymbro.identity.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -34,10 +35,12 @@ public class User {
 
     @NotNull
     @Enumerated(EnumType.STRING)
+    @Column(length = 16)
     private Role role;
 
     @NotNull
     @Enumerated(EnumType.STRING)
+    @Column(length = 16)
     private UserStatus status;
 
     @NotNull

@@ -1,5 +1,6 @@
 package ru.itmo.gymbro.profile.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -25,6 +26,7 @@ public class UserSport {
 
     @NotNull
     @Enumerated(EnumType.STRING)
+    @Column(length = 16)
     private SportLevel level;
 
     protected UserSport() {

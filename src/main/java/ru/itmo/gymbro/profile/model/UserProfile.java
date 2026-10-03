@@ -1,6 +1,7 @@
 package ru.itmo.gymbro.profile.model;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -44,6 +45,7 @@ public class UserProfile {
     @Past
     private LocalDate birthDate;
 
+    @Column(columnDefinition = "text")
     private String about;
 
     @Valid
