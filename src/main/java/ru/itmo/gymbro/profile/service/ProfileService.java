@@ -32,8 +32,8 @@ class ProfileService implements ProfileUseCases {
     private final SportUseCases catalogSports;
     private final GymUseCases catalogGyms;
 
-    ProfileService(UserProfileRepository profiles, CurrentUserAccess access,
-                   SportUseCases catalogSports, GymUseCases catalogGyms) {
+    public ProfileService(UserProfileRepository profiles, CurrentUserAccess access,
+                          SportUseCases catalogSports, GymUseCases catalogGyms) {
         this.profiles = profiles;
         this.access = access;
         this.catalogSports = catalogSports;

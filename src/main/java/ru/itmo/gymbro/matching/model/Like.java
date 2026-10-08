@@ -1,17 +1,24 @@
 package ru.itmo.gymbro.matching.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.Getter;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.Instant;
 import java.util.Objects;
 
-@Table("likes")
+@Entity
+@Table(name = "likes")
+@Getter
 public class Like {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Positive
@@ -22,6 +29,9 @@ public class Like {
 
     @NotNull
     private Instant createdAt;
+
+    protected Like() {
+    }
 
     public Like(Long id, long fromUserId, long toUserId, Instant createdAt) {
         if (fromUserId <= 0 || toUserId <= 0) {
@@ -38,22 +48,6 @@ public class Like {
 
     public static Like from(long fromUserId, long toUserId) {
         return new Like(null, fromUserId, toUserId, Instant.now());
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public long getFromUserId() {
-        return fromUserId;
-    }
-
-    public long getToUserId() {
-        return toUserId;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
     }
 
     @Override

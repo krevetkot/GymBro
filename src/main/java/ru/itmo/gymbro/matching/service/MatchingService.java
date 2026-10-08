@@ -36,8 +36,8 @@ class MatchingService implements MatchingUseCases {
     private final LikeRepository likes;
     private final MatchRepository matches;
 
-    MatchingService(CurrentUserAccess access, UserUseCases users, ProfileUseCases profiles,
-                    LikeRepository likes, MatchRepository matches) {
+    public MatchingService(CurrentUserAccess access, UserUseCases users, ProfileUseCases profiles,
+                           LikeRepository likes, MatchRepository matches) {
         this.access = access;
         this.users = users;
         this.profiles = profiles;

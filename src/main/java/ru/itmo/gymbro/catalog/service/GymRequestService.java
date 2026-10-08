@@ -23,7 +23,7 @@ class GymRequestService implements GymRequestUseCases {
     private final GymRepository gyms;
     private final CurrentUserAccess access;
 
-    GymRequestService(GymRequestRepository requests, GymRepository gyms, CurrentUserAccess access) {
+    public GymRequestService(GymRequestRepository requests, GymRepository gyms, CurrentUserAccess access) {
         this.requests = requests;
         this.gyms = gyms;
         this.access = access;
@@ -35,7 +35,7 @@ class GymRequestService implements GymRequestUseCases {
         long authorId = access.requireActiveUser();
         GymRequest request = GymRequest.submit(authorId, name, city, address);
         requireAddressIsFree(request);
-        return requests.save(request);
+        return requests.saveAndFlush(request);
     }
 
     @Override
@@ -53,7 +53,7 @@ class GymRequestService implements GymRequestUseCases {
         requireAddressIsFree(request);
         Gym gym = gyms.save(request.toGym());
         request.approve(adminId, gym.getId());
-        return requests.save(request);
+        return requests.saveAndFlush(request);
     }
 
     @Override
@@ -62,7 +62,7 @@ class GymRequestService implements GymRequestUseCases {
         long adminId = access.requireAdmin();
         GymRequest request = pendingRequestForUpdate(requestId);
         request.reject(adminId);
-        return requests.save(request);
+        return requests.saveAndFlush(request);
     }
 
     private GymRequest pendingRequestForUpdate(long requestId) {

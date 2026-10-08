@@ -1,19 +1,29 @@
 package ru.itmo.gymbro.profile.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.Getter;
 import jakarta.validation.constraints.Positive;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Table;
 
 import java.util.Objects;
 
-@Table("user_gyms")
+@Entity
+@Table(name = "user_gyms")
+@Getter
 public class UserGym {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Positive
     private long gymId;
+
+    protected UserGym() {
+    }
 
     public UserGym(Long id, long gymId) {
         if (gymId <= 0) {
@@ -25,14 +35,6 @@ public class UserGym {
 
     public static UserGym of(long gymId) {
         return new UserGym(null, gymId);
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public long getGymId() {
-        return gymId;
     }
 
     @Override

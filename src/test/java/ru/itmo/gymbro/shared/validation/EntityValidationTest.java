@@ -5,6 +5,7 @@ import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.catalog.model.Sport;
 import ru.itmo.gymbro.catalog.repository.SportRepository;
@@ -30,6 +31,9 @@ class EntityValidationTest extends AbstractIntegrationTest {
     @Autowired
     private UserProfileRepository profiles;
 
+    @Autowired
+    private JdbcTemplate jdbc;
+
     @Test
     @DisplayName("Пользователь с некорректным email не сохраняется")
     void rejectsMalformedEmail() {
@@ -38,7 +42,7 @@ class EntityValidationTest extends AbstractIntegrationTest {
         assertThatThrownBy(() -> users.save(user))
                 .isInstanceOfSatisfying(ConstraintViolationException.class,
                         exception -> assertThat(violatedPaths(exception)).containsExactly("email"));
-        assertThat(users.existsByEmail("not-an-email")).isFalse();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE email = ?", Long.class, "not-an-email")).isZero();
     }
 
     @Test
@@ -60,7 +64,7 @@ class EntityValidationTest extends AbstractIntegrationTest {
         assertThatThrownBy(() -> profiles.save(profile))
                 .isInstanceOfSatisfying(ConstraintViolationException.class,
                         exception -> assertThat(violatedPaths(exception)).containsExactly("name"));
-        assertThat(profiles.existsByUserId(userId)).isFalse();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM user_profiles WHERE user_id = ?", Long.class, userId)).isZero();
     }
 
     private static List<String> violatedPaths(ConstraintViolationException exception) {

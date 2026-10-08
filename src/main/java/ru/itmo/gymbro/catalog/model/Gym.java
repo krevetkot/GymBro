@@ -1,16 +1,23 @@
 package ru.itmo.gymbro.catalog.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.Getter;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Table;
 
 import java.util.Objects;
 
-@Table("gyms")
+@Entity
+@Table(name = "gyms")
+@Getter
 public class Gym {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotBlank
@@ -24,6 +31,9 @@ public class Gym {
     @NotBlank
     @Size(max = 300)
     private String address;
+
+    protected Gym() {
+    }
 
     public Gym(Long id, String name, String city, String address) {
         this.id = id;
@@ -43,22 +53,6 @@ public class Gym {
 
     public void rename(String newName) {
         this.name = checkText(newName, "Название зала обязательно");
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getCity() {
-        return city;
-    }
-
-    public String getAddress() {
-        return address;
     }
 
     private static String checkText(String value, String message) {

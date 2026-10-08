@@ -20,7 +20,7 @@ class GymService implements GymUseCases {
     private final GymRepository gyms;
     private final CurrentUserAccess access;
 
-    GymService(GymRepository gyms, CurrentUserAccess access) {
+    public GymService(GymRepository gyms, CurrentUserAccess access) {
         this.gyms = gyms;
         this.access = access;
     }

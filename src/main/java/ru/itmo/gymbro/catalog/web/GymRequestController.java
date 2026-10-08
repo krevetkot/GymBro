@@ -39,7 +39,7 @@ class GymRequestController {
 
     private final GymRequestUseCases requests;
 
-    GymRequestController(GymRequestUseCases requests) {
+    public GymRequestController(GymRequestUseCases requests) {
         this.requests = requests;
     }
 

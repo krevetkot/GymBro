@@ -1,17 +1,24 @@
 package ru.itmo.gymbro.matching.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.Getter;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.Instant;
 import java.util.Objects;
 
-@Table("matches")
+@Entity
+@Table(name = "matches")
+@Getter
 public class Match {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Positive
@@ -22,6 +29,9 @@ public class Match {
 
     @NotNull
     private Instant createdAt;
+
+    protected Match() {
+    }
 
     public Match(Long id, long user1Id, long user2Id, Instant createdAt) {
         if (user1Id <= 0 || user2Id <= 0) {
@@ -54,22 +64,6 @@ public class Match {
             return user1Id;
         }
         throw new IllegalArgumentException("Пользователь не участвует в этом мэтче");
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public long getUser1Id() {
-        return user1Id;
-    }
-
-    public long getUser2Id() {
-        return user2Id;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
     }
 
     @Override

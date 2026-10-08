@@ -1,5 +1,6 @@
 package ru.itmo.gymbro.catalog.web;
 
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,6 +68,8 @@ class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
     private GymRequestRepository requests;
     @Autowired
     private UserProfileRepository profiles;
+    @Autowired
+    private EntityManager entityManager;
     @Autowired
     private JdbcTemplate jdbc;
 
@@ -160,7 +163,7 @@ class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
     @Test
     void rollsBackCreatedGymWhenSavingDecisionFails() throws Exception {
         doThrow(new DataAccessResourceFailureException("Injected decision save failure"))
-                .when(requests).save(any(GymRequest.class));
+                .when(requests).saveAndFlush(any(GymRequest.class));
         mvc.perform(post(action(requestId, "approve")).header("X-User-Id", adminId))
                 .andExpect(status().isInternalServerError());
 
@@ -179,13 +182,13 @@ class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
     void rollsBackPersistedDecisionAndAllowsRetry(String operation) throws Exception {
         AtomicBoolean decisionWritten = new AtomicBoolean();
         doAnswer(invocation -> {
-            invocation.callRealMethod();
+            entityManager.flush();
             String storedStatus = jdbc.queryForObject(
                     "SELECT status FROM gym_requests WHERE id = ?", String.class, requestId);
             assertThat(storedStatus).isEqualTo(operation.equals("approve") ? "APPROVED" : "REJECTED");
             decisionWritten.set(true);
             throw new DataAccessResourceFailureException("Injected failure after decision was written");
-        }).when(requests).save(any(GymRequest.class));
+        }).when(requests).saveAndFlush(any(GymRequest.class));
 
         mvc.perform(post(action(requestId, operation)).header("X-User-Id", adminId))
                 .andExpect(status().isInternalServerError());
@@ -201,7 +204,10 @@ class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
                     .extracting(UserGym::getGymId).containsExactly(existingGymId);
         });
 
-        doCallRealMethod().when(requests).save(any(GymRequest.class));
+        doAnswer(invocation -> {
+            entityManager.flush();
+            return invocation.getArgument(0);
+        }).when(requests).saveAndFlush(any(GymRequest.class));
         mvc.perform(post(action(requestId, operation)).header("X-User-Id", adminId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(operation.equals("approve") ? "APPROVED" : "REJECTED"))

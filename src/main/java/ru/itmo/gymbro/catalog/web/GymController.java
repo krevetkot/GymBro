@@ -37,7 +37,7 @@ class GymController {
 
     private final GymUseCases gyms;
 
-    GymController(GymUseCases gyms) {
+    public GymController(GymUseCases gyms) {
         this.gyms = gyms;
     }
 

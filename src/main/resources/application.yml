@@ -5,7 +5,7 @@ spring:
     name: gymbro
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5433/gymbro}
+    url: ${DB_URL:jdbc:postgresql://127.0.0.1:5433/gymbro}
     username: ${DB_USER:gymbro}
     password: ${DB_PASSWORD:gymbro}
     hikari:
@@ -13,6 +13,11 @@ spring:
 
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
 
   data:
     web:
@@ -24,12 +29,8 @@ spring:
   jackson:
     default-property-inclusion: non_null
 
-gymbro:
-  jdbc:
-    schema-validation: validate
-
 server:
-  port: 8888
+  port: ${APP_PORT:8888}
 
 springdoc:
   swagger-ui:
@@ -42,5 +43,5 @@ springdoc:
 
 logging:
   level:
-    org.springframework.jdbc.core: ${SQL_LOG_LEVEL:INFO}
+    org.hibernate.SQL: ${SQL_LOG_LEVEL:INFO}
     liquibase: INFO
