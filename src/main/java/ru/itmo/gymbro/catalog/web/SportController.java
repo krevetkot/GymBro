@@ -37,7 +37,7 @@ class SportController {
 
     private final SportUseCases sports;
 
-    SportController(SportUseCases sports) {
+    public SportController(SportUseCases sports) {
         this.sports = sports;
     }
 

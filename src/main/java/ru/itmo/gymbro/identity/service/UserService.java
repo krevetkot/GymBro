@@ -25,7 +25,7 @@ class UserService implements UserUseCases, CurrentUserAccess {
     private final UserRepository users;
     private final CurrentUserProvider currentUser;
 
-    UserService(UserRepository users, CurrentUserProvider currentUser) {
+    public UserService(UserRepository users, CurrentUserProvider currentUser) {
         this.users = users;
         this.currentUser = currentUser;
     }

@@ -5,6 +5,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
@@ -13,6 +14,7 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "matches")
+@Getter
 public class Match {
 
     @Id
@@ -62,22 +64,6 @@ public class Match {
             return user1Id;
         }
         throw new IllegalArgumentException("Пользователь не участвует в этом мэтче");
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public long getUser1Id() {
-        return user1Id;
-    }
-
-    public long getUser2Id() {
-        return user2Id;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
     }
 
     @Override

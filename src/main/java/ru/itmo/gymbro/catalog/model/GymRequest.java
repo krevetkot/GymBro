@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -18,6 +19,7 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "gym_requests")
+@Getter
 public class GymRequest {
 
     @Id
@@ -108,42 +110,6 @@ public class GymRequest {
 
     public boolean isPending() {
         return status == RequestStatus.PENDING;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public long getAuthorId() {
-        return authorId;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getCity() {
-        return city;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public RequestStatus getStatus() {
-        return status;
-    }
-
-    public Long getReviewedBy() {
-        return reviewedBy;
-    }
-
-    public Long getGymId() {
-        return gymId;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
     }
 
     private void requirePending() {

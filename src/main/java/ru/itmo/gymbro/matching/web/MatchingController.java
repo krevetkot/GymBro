@@ -37,7 +37,7 @@ class MatchingController {
 
     private final MatchingUseCases matching;
 
-    MatchingController(MatchingUseCases matching) {
+    public MatchingController(MatchingUseCases matching) {
         this.matching = matching;
     }
 

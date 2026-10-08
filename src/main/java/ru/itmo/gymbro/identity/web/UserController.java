@@ -37,7 +37,7 @@ class UserController {
 
     private final UserUseCases users;
 
-    UserController(UserUseCases users) {
+    public UserController(UserUseCases users) {
         this.users = users;
     }
 

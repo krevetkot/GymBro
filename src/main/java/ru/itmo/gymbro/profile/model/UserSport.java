@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
@@ -15,6 +16,7 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "user_sports")
+@Getter
 public class UserSport {
 
     @Id
@@ -50,18 +52,6 @@ public class UserSport {
 
     void changeLevel(SportLevel newLevel) {
         this.level = newLevel;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public long getSportId() {
-        return sportId;
-    }
-
-    public SportLevel getLevel() {
-        return level;
     }
 
     @Override

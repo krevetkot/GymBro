@@ -33,7 +33,7 @@ class ProfileController {
 
     private final ProfileUseCases profiles;
 
-    ProfileController(ProfileUseCases profiles) {
+    public ProfileController(ProfileUseCases profiles) {
         this.profiles = profiles;
     }
 

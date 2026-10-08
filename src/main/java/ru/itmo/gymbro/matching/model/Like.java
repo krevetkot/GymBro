@@ -5,6 +5,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
@@ -13,6 +14,7 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "likes")
+@Getter
 public class Like {
 
     @Id
@@ -46,22 +48,6 @@ public class Like {
 
     public static Like from(long fromUserId, long toUserId) {
         return new Like(null, fromUserId, toUserId, Instant.now());
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public long getFromUserId() {
-        return fromUserId;
-    }
-
-    public long getToUserId() {
-        return toUserId;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
     }
 
     @Override

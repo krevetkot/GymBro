@@ -23,7 +23,7 @@ class ColumnLengthValidator implements InitializingBean {
     private final EntityManagerFactory entityManagerFactory;
     private final DataSource dataSource;
 
-    ColumnLengthValidator(EntityManagerFactory entityManagerFactory, DataSource dataSource) {
+    public ColumnLengthValidator(EntityManagerFactory entityManagerFactory, DataSource dataSource) {
         this.entityManagerFactory = entityManagerFactory;
         this.dataSource = dataSource;
     }

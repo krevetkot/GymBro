@@ -5,12 +5,14 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
 import jakarta.validation.constraints.Positive;
 
 import java.util.Objects;
 
 @Entity
 @Table(name = "user_gyms")
+@Getter
 public class UserGym {
 
     @Id
@@ -33,14 +35,6 @@ public class UserGym {
 
     public static UserGym of(long gymId) {
         return new UserGym(null, gymId);
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public long getGymId() {
-        return gymId;
     }
 
     @Override

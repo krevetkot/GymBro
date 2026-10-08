@@ -1,27 +1,20 @@
 package ru.itmo.gymbro.identity.repository;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import ru.itmo.gymbro.identity.model.User;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface UserRepository {
+public interface UserRepository extends JpaRepository<User, Long> {
 
-    public User save(User user);
-
-    public Optional<User> findById(long id);
-
+    @Query("SELECT user FROM User user WHERE user.email = LOWER(TRIM(:email))")
     public Optional<User> findByEmail(String email);
 
-    public boolean existsById(long id);
-
+    @Query("SELECT (COUNT(user) > 0) FROM User user WHERE user.email = LOWER(TRIM(:email))")
     public boolean existsByEmail(String email);
 
-    public Page<User> findAll(Pageable pageable);
-
-    public void deleteById(long id);
-
+    @Query(value = "SELECT id FROM users WHERE status = 'BANNED'", nativeQuery = true)
     public List<Long> findBannedIds();
 }

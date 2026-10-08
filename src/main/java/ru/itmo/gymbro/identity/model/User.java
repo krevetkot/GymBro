@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -18,6 +19,7 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "users")
+@Getter
 public class User {
 
     @Id
@@ -94,30 +96,6 @@ public class User {
 
     public boolean isAdmin() {
         return role == Role.ADMIN;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public UserStatus getStatus() {
-        return status;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
     }
 
     private static String normalizeEmail(String value) {

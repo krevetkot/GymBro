@@ -34,7 +34,7 @@ class GymRequestServiceTest {
     @Test
     void createsPendingRequestWithCurrentAuthorWithoutCreatingGym() {
         when(access.requireActiveUser()).thenReturn(7L);
-        when(requests.save(any(GymRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(requests.saveAndFlush(any(GymRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         GymRequest request = service.submit(" Gym ", " City ", " Address ");
 
@@ -98,12 +98,12 @@ class GymRequestServiceTest {
         GymRequest request = GymRequest.submit(7L, "Gym", "City", "Address");
         when(requests.findByIdForUpdate(1L)).thenReturn(Optional.of(request));
         when(gyms.save(any())).thenReturn(new Gym(20L, "Gym", "City", "Address"));
-        when(requests.save(request)).thenThrow(new IllegalStateException("Ошибка сохранения решения"));
+        when(requests.saveAndFlush(request)).thenThrow(new IllegalStateException("Ошибка сохранения решения"));
 
         assertThatThrownBy(() -> service.approve(1L)).isInstanceOf(IllegalStateException.class);
         var order = inOrder(gyms, requests);
         order.verify(gyms).save(any());
-        order.verify(requests).save(request);
+        order.verify(requests).saveAndFlush(request);
     }
 
     @Test
@@ -114,6 +114,6 @@ class GymRequestServiceTest {
         when(gyms.existsByCityAndAddress("City", "Address")).thenReturn(true);
         assertThatThrownBy(() -> service.approve(1L)).isInstanceOf(ConflictException.class);
         verify(gyms, never()).save(any());
-        verify(requests, never()).save(any());
+        verify(requests, never()).saveAndFlush(any());
     }
 }

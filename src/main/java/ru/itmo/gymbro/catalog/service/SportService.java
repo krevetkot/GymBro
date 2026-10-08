@@ -18,7 +18,7 @@ class SportService implements SportUseCases {
 
     private final SportRepository sports;
 
-    SportService(SportRepository sports) {
+    public SportService(SportRepository sports) {
         this.sports = sports;
     }
 

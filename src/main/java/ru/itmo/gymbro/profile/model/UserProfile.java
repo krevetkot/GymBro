@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import lombok.Getter;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -28,6 +29,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "user_profiles")
+@Getter
 public class UserProfile {
 
     @Id
@@ -115,36 +117,12 @@ public class UserProfile {
         return Period.between(birthDate, LocalDate.now()).getYears();
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public long getUserId() {
-        return userId;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public LocalDate getBirthDate() {
-        return birthDate;
-    }
-
-    public String getAbout() {
-        return about;
-    }
-
     public Set<UserSport> getSports() {
         return Collections.unmodifiableSet(sports);
     }
 
     public Set<UserGym> getGyms() {
         return Collections.unmodifiableSet(gyms);
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
     }
 
     private void touch() {

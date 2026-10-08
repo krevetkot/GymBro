@@ -8,7 +8,7 @@ databaseChangeLog:
               CREATE TABLE users (
                   id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                   email         VARCHAR(255) NOT NULL,
-                  password      VARCHAR(255) NOT NULL,
+                  password_hash VARCHAR(255) NOT NULL,
                   role          VARCHAR(16)  NOT NULL DEFAULT 'USER',
                   status        VARCHAR(16)  NOT NULL DEFAULT 'ACTIVE',
                   created_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
@@ -26,8 +26,44 @@ databaseChangeLog:
       changes:
         - sql:
             sql: |
-              INSERT INTO users (email, password, role, status)
-              VALUES ('admin@gymbro.local', 'admin12345', 'ADMIN', 'ACTIVE')
+              INSERT INTO users (email, password_hash, role, status)
+              VALUES ('admin@gymbro.local', '$2a$10$q3/Bqbn2VPRYL2mcVToi2.wUWQE3lkt8qmkTla5RiaqySWyE/tEZq', 'ADMIN', 'ACTIVE')
       rollback:
         - sql:
             sql: DELETE FROM users WHERE email = 'admin@gymbro.local'
+
+  - changeSet:
+      id: identity-003-rename-password-column
+      author: gymbro
+      changes:
+        - renameColumn:
+            tableName: users
+            oldColumnName: password_hash
+            newColumnName: password
+            columnDataType: VARCHAR(255)
+      rollback:
+        - renameColumn:
+            tableName: users
+            oldColumnName: password
+            newColumnName: password_hash
+            columnDataType: VARCHAR(255)
+
+  - changeSet:
+      id: identity-004-update-seed-admin-password
+      author: gymbro
+      changes:
+        - update:
+            tableName: users
+            columns:
+              - column:
+                  name: password
+                  value: admin12345
+            where: email = 'admin@gymbro.local'
+      rollback:
+        - update:
+            tableName: users
+            columns:
+              - column:
+                  name: password
+                  value: '$2a$10$q3/Bqbn2VPRYL2mcVToi2.wUWQE3lkt8qmkTla5RiaqySWyE/tEZq'
+            where: email = 'admin@gymbro.local'

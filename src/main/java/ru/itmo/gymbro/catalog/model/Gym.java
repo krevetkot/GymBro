@@ -5,6 +5,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -12,6 +13,7 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "gyms")
+@Getter
 public class Gym {
 
     @Id
@@ -51,22 +53,6 @@ public class Gym {
 
     public void rename(String newName) {
         this.name = checkText(newName, "Название зала обязательно");
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getCity() {
-        return city;
-    }
-
-    public String getAddress() {
-        return address;
     }
 
     private static String checkText(String value, String message) {

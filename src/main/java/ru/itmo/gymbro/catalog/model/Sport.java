@@ -5,6 +5,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -12,6 +13,7 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "sports")
+@Getter
 public class Sport {
 
     @Id
@@ -32,14 +34,6 @@ public class Sport {
 
     public static Sport of(String name) {
         return new Sport(null, name);
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
     }
 
     private static String checkName(String value) {
