@@ -1,78 +1,75 @@
 plugins {
-    id 'java'
-    id 'jacoco'
-    id 'org.springframework.boot' version '4.1.1'
-    id 'io.spring.dependency-management' version '1.1.7'
-}
-
-group = 'ru.itmo'
-version = '0.0.1-SNAPSHOT'
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
-repositories {
-    mavenCentral()
+    id 'org.springframework.boot' version '4.1.1' apply false
+    id 'io.spring.dependency-management' version '1.1.7' apply false
 }
 
 ext {
-    springdocVersion = '3.1.1'
-    archunitVersion = '1.3.0'
-    liquibaseHibernateVersion = '5.0.4'
-}
-ext['liquibase.version'] = '5.0.4'
-
-dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-validation'
-    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${springdocVersion}"
-
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-liquibase'
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-    runtimeOnly 'org.postgresql:postgresql'
-
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
-    testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
-    testImplementation 'org.testcontainers:testcontainers-postgresql'
-    testImplementation "com.tngtech.archunit:archunit-junit5:${archunitVersion}"
-    testImplementation "org.liquibase.ext:liquibase-hibernate7:${liquibaseHibernateVersion}"
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    springCloudVersion = '2025.1.3'
 }
 
-tasks.named('test') {
-    useJUnitPlatform()
-    finalizedBy tasks.named('jacocoTestReport')
-}
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'jacoco'
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
 
-jacocoTestReport {
-    dependsOn tasks.named('test')
-    reports {
-        xml.required = true
-        html.required = true
+    group = 'ru.itmo'
+    version = '0.0.1-SNAPSHOT'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
     }
-    afterEvaluate {
-        classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: [
-                    '**/GymBroApplication.class',
-                    '**/config/**',
-                    '**/dto/**'
-            ])
-        }))
-    }
-}
 
-jacocoTestCoverageVerification {
-    violationRules {
-        rule {
-            limit {
-                counter = 'INSTRUCTION'
-                minimum = 0.70
+    repositories {
+        mavenCentral()
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+        }
+    }
+
+    dependencies {
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    bootJar {
+        archiveFileName = 'app.jar'
+    }
+
+    tasks.named('test') {
+        useJUnitPlatform()
+        finalizedBy tasks.named('jacocoTestReport')
+    }
+
+    jacocoTestReport {
+        dependsOn tasks.named('test')
+        reports {
+            xml.required = true
+            html.required = true
+        }
+        afterEvaluate {
+            classDirectories.setFrom(files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: [
+                        '**/*Application.class',
+                        '**/config/**',
+                        '**/dto/**'
+                ])
+            }))
+        }
+    }
+
+    jacocoTestCoverageVerification {
+        violationRules {
+            rule {
+                limit {
+                    counter = 'INSTRUCTION'
+                    minimum = 0.70
+                }
             }
         }
     }

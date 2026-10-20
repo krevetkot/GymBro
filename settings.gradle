@@ -1,2 +1,6 @@
 rootProject.name = 'GymBro'
 
+include 'config-server'
+include 'eureka-server'
+include 'gateway'
+include 'monolith'

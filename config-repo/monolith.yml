@@ -1,8 +1,4 @@
-
 spring:
-
-  application:
-    name: gymbro
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://127.0.0.1:5433/gymbro}
@@ -19,18 +15,8 @@ spring:
     hibernate:
       ddl-auto: validate
 
-  data:
-    web:
-      pageable:
-        default-page-size: 20
-        max-page-size: 50
-        one-indexed-parameters: false
-
-  jackson:
-    default-property-inclusion: non_null
-
 server:
-  port: ${APP_PORT:8888}
+  port: ${MONOLITH_PORT:8081}
 
 springdoc:
   swagger-ui:

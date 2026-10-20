@@ -1,19 +1,26 @@
 FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /app
 
+ARG SERVICE
+
 COPY gradle gradle
 COPY gradlew build.gradle settings.gradle ./
-RUN chmod +x gradlew && ./gradlew --no-daemon dependencies
+COPY config-server/build.gradle config-server/
+COPY eureka-server/build.gradle eureka-server/
+COPY gateway/build.gradle gateway/
+COPY monolith/build.gradle monolith/
+RUN chmod +x gradlew && ./gradlew --no-daemon :${SERVICE}:dependencies
 
-COPY src src
-RUN ./gradlew --no-daemon bootJar -x test
+COPY ${SERVICE}/src ${SERVICE}/src
+RUN ./gradlew --no-daemon :${SERVICE}:bootJar -x test
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
+ARG SERVICE
+
 RUN addgroup -S app && adduser -S app -G app
-COPY --from=build /app/build/libs/*.jar app.jar
+COPY --from=build /app/${SERVICE}/build/libs/app.jar app.jar
 USER app
 
-EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

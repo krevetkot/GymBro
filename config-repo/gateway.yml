@@ -1,0 +1,20 @@
+# Наружу открыты только /api/** и Swagger. Пути /internal/** не маршрутизируются:
+# их вызывают сервисы друг у друга напрямую, через Eureka.
+
+server:
+  port: ${GATEWAY_PORT:8080}
+
+spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: monolith-api
+              uri: lb://monolith
+              predicates:
+                - Path=/api/**
+            - id: monolith-docs
+              uri: lb://monolith
+              predicates:
+                - Path=/v3/api-docs/**,/swagger-ui.html,/swagger-ui/**

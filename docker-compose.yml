@@ -1,3 +1,8 @@
+x-healthcheck: &healthcheck
+  interval: 5s
+  timeout: 5s
+  retries: 30
+
 services:
   db:
     image: postgres:17-alpine
@@ -12,22 +17,69 @@ services:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-gymbro} -d ${DB_NAME:-gymbro}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      <<: *healthcheck
 
-  app:
-    build: .
-    container_name: gymbro-app
+  config-server:
+    build:
+      context: .
+      args:
+        SERVICE: config-server
+    container_name: gymbro-config-server
+    environment:
+      CONFIG_REPO: file:/config-repo/
+    volumes:
+      - ./config-repo:/config-repo:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8888/actuator/health | grep -q UP"]
+      <<: *healthcheck
+
+  eureka-server:
+    build:
+      context: .
+      args:
+        SERVICE: eureka-server
+    container_name: gymbro-eureka-server
+    ports:
+      - "${EUREKA_PORT:-8761}:8761"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8761/actuator/health | grep -q UP"]
+      <<: *healthcheck
+
+  monolith:
+    build:
+      context: .
+      args:
+        SERVICE: monolith
+    container_name: gymbro-monolith
     depends_on:
       db:
         condition: service_healthy
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
     environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_URL: http://eureka-server:8761/eureka/
       DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-gymbro}
       DB_USER: ${DB_USER:-gymbro}
       DB_PASSWORD: ${DB_PASSWORD:-gymbro}
-      APP_PORT: 8080
       SQL_LOG_LEVEL: ${SQL_LOG_LEVEL:-INFO}
+
+  gateway:
+    build:
+      context: .
+      args:
+        SERVICE: gateway
+    container_name: gymbro-gateway
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_URL: http://eureka-server:8761/eureka/
     ports:
       - "${APP_PORT:-8080}:8080"
 
