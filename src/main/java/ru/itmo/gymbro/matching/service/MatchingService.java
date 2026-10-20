@@ -7,8 +7,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.itmo.gymbro.identity.api.CurrentUserAccess;
-import ru.itmo.gymbro.identity.api.UserUseCases;
+import ru.itmo.gymbro.identity.api.UserDirectory;
 import ru.itmo.gymbro.matching.api.MatchingUseCases;
 import ru.itmo.gymbro.matching.dto.LikeResponse;
 import ru.itmo.gymbro.matching.dto.MatchResponse;
@@ -16,9 +15,10 @@ import ru.itmo.gymbro.matching.model.Like;
 import ru.itmo.gymbro.matching.model.Match;
 import ru.itmo.gymbro.matching.repository.LikeRepository;
 import ru.itmo.gymbro.matching.repository.MatchRepository;
+import ru.itmo.gymbro.profile.api.ProfileSnapshot;
 import ru.itmo.gymbro.profile.api.ProfileUseCases;
-import ru.itmo.gymbro.profile.model.UserProfile;
 import ru.itmo.gymbro.shared.api.ConflictException;
+import ru.itmo.gymbro.shared.api.CurrentUserAccess;
 import ru.itmo.gymbro.shared.api.NotFoundException;
 
 import java.util.HashSet;
@@ -31,12 +31,12 @@ class MatchingService implements MatchingUseCases {
     private static final Sort NEWEST_FIRST = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
 
     private final CurrentUserAccess access;
-    private final UserUseCases users;
+    private final UserDirectory users;
     private final ProfileUseCases profiles;
     private final LikeRepository likes;
     private final MatchRepository matches;
 
-    public MatchingService(CurrentUserAccess access, UserUseCases users, ProfileUseCases profiles,
+    public MatchingService(CurrentUserAccess access, UserDirectory users, ProfileUseCases profiles,
                            LikeRepository likes, MatchRepository matches) {
         this.access = access;
         this.users = users;
@@ -46,7 +46,7 @@ class MatchingService implements MatchingUseCases {
     }
 
     @Override
-    public Slice<UserProfile> nextFeedCards(Pageable pageable) {
+    public Slice<ProfileSnapshot> nextFeedCards(Pageable pageable) {
         long viewerId = access.requireActiveUser();
         Set<Long> excluded = new HashSet<>(likes.findLikedUserIds(viewerId));
         excluded.addAll(users.bannedUserIds());
@@ -59,7 +59,7 @@ class MatchingService implements MatchingUseCases {
     public LikeResponse like(long toUserId) {
         long fromUserId = access.requireActiveUser();
         Like like = Like.from(fromUserId, toUserId);
-        if (!users.getById(toUserId).isActive()) {
+        if (!users.getSnapshot(toUserId).active()) {
             throw new NotFoundException("Пользователь " + toUserId + " недоступен");
         }
 

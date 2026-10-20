@@ -3,9 +3,9 @@ package ru.itmo.gymbro.catalog.service;
 import org.junit.jupiter.api.Test;
 import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.repository.GymRepository;
-import ru.itmo.gymbro.identity.api.CurrentUserAccess;
-import ru.itmo.gymbro.shared.api.ForbiddenException;
 import ru.itmo.gymbro.shared.api.ConflictException;
+import ru.itmo.gymbro.shared.api.CurrentUserAccess;
+import ru.itmo.gymbro.shared.api.ForbiddenException;
 import ru.itmo.gymbro.shared.api.NotFoundException;
 
 import java.util.Optional;

@@ -1,8 +1,6 @@
 package ru.itmo.gymbro.matching.dto;
 
-import ru.itmo.gymbro.profile.model.UserGym;
-import ru.itmo.gymbro.profile.model.UserProfile;
-import ru.itmo.gymbro.profile.model.UserSport;
+import ru.itmo.gymbro.profile.api.ProfileSnapshot;
 
 import java.util.List;
 
@@ -25,14 +23,14 @@ public class FeedCardResponse {
         this.gymIds = List.copyOf(gymIds);
     }
 
-    public static FeedCardResponse from(UserProfile profile) {
+    public static FeedCardResponse from(ProfileSnapshot profile) {
         return new FeedCardResponse(
-                profile.getUserId(),
-                profile.getName(),
-                profile.getAge(),
-                profile.getAbout(),
-                profile.getSports().stream().map(UserSport::getSportId).sorted().toList(),
-                profile.getGyms().stream().map(UserGym::getGymId).sorted().toList());
+                profile.userId(),
+                profile.name(),
+                profile.age(),
+                profile.about(),
+                profile.sportIds(),
+                profile.gymIds());
     }
 
     public long getUserId() {

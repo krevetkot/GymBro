@@ -1,4 +1,4 @@
-package ru.itmo.gymbro.identity.api;
+package ru.itmo.gymbro.shared.api;
 
 public interface CurrentUserAccess {
 

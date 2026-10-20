@@ -19,5 +19,5 @@ public interface ProfileUseCases {
 
     public UserProfile replaceMyGyms(List<Long> gymIds);
 
-    public Slice<UserProfile> findFeedCandidates(long viewerUserId, Set<Long> excludedUserIds, Pageable pageable);
+    public Slice<ProfileSnapshot> findFeedCandidates(long viewerUserId, Set<Long> excludedUserIds, Pageable pageable);
 }

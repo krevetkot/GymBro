@@ -6,11 +6,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.itmo.gymbro.identity.api.CurrentUserAccess;
+import ru.itmo.gymbro.identity.api.UserDirectory;
+import ru.itmo.gymbro.identity.api.UserSnapshot;
 import ru.itmo.gymbro.identity.api.UserUseCases;
 import ru.itmo.gymbro.identity.model.User;
 import ru.itmo.gymbro.identity.repository.UserRepository;
 import ru.itmo.gymbro.shared.api.ConflictException;
+import ru.itmo.gymbro.shared.api.CurrentUserAccess;
 import ru.itmo.gymbro.shared.api.CurrentUserProvider;
 import ru.itmo.gymbro.shared.api.ForbiddenException;
 import ru.itmo.gymbro.shared.api.NotFoundException;
@@ -20,7 +22,7 @@ import java.util.Set;
 
 @Service
 @Transactional(readOnly = true)
-class UserService implements UserUseCases, CurrentUserAccess {
+class UserService implements UserUseCases, UserDirectory, CurrentUserAccess {
 
     private final UserRepository users;
     private final CurrentUserProvider currentUser;
@@ -75,6 +77,11 @@ class UserService implements UserUseCases, CurrentUserAccess {
             throw new NotFoundException("Пользователь " + id + " не найден");
         }
         users.deleteById(id);
+    }
+
+    @Override
+    public UserSnapshot getSnapshot(long id) {
+        return UserSnapshot.from(getById(id));
     }
 
     @Override

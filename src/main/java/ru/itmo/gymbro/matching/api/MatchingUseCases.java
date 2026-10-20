@@ -5,11 +5,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import ru.itmo.gymbro.matching.dto.LikeResponse;
 import ru.itmo.gymbro.matching.dto.MatchResponse;
-import ru.itmo.gymbro.profile.model.UserProfile;
+import ru.itmo.gymbro.profile.api.ProfileSnapshot;
 
 public interface MatchingUseCases {
 
-    public Slice<UserProfile> nextFeedCards(Pageable pageable);
+    public Slice<ProfileSnapshot> nextFeedCards(Pageable pageable);
 
     public LikeResponse like(long toUserId);
 

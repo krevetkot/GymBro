@@ -6,13 +6,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.itmo.gymbro.catalog.api.GymUseCases;
 import ru.itmo.gymbro.catalog.api.SportUseCases;
-import ru.itmo.gymbro.identity.api.CurrentUserAccess;
+import ru.itmo.gymbro.profile.api.ProfileSnapshot;
 import ru.itmo.gymbro.profile.api.ProfileUseCases;
 import ru.itmo.gymbro.profile.api.SavedProfile;
 import ru.itmo.gymbro.profile.model.UserGym;
 import ru.itmo.gymbro.profile.model.UserProfile;
 import ru.itmo.gymbro.profile.model.UserSport;
 import ru.itmo.gymbro.profile.repository.UserProfileRepository;
+import ru.itmo.gymbro.shared.api.CurrentUserAccess;
 import ru.itmo.gymbro.shared.api.NotFoundException;
 
 import java.time.LocalDate;
@@ -84,12 +85,12 @@ class ProfileService implements ProfileUseCases {
     }
 
     @Override
-    public Slice<UserProfile> findFeedCandidates(long viewerUserId, Set<Long> excludedUserIds, Pageable pageable) {
+    public Slice<ProfileSnapshot> findFeedCandidates(long viewerUserId, Set<Long> excludedUserIds, Pageable pageable) {
         UserProfile viewer = profiles.findByUserId(viewerUserId)
                 .orElseThrow(() -> new NotFoundException(FILL_PROFILE_FIRST));
         Set<Long> excluded = new HashSet<>(excludedUserIds);
         excluded.add(viewerUserId);
-        return profiles.findFeed(viewer.getId(), excluded, pageable);
+        return profiles.findFeed(viewer.getId(), excluded, pageable).map(ProfileSnapshot::from);
     }
 
     private UserProfile lockMyProfile() {
