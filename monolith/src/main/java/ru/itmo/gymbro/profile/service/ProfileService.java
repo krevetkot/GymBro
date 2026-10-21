@@ -1,11 +1,12 @@
 package ru.itmo.gymbro.profile.service;
 
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.itmo.gymbro.catalog.api.GymUseCases;
-import ru.itmo.gymbro.catalog.api.SportUseCases;
+import ru.itmo.gymbro.catalog.api.CatalogDirectory;
+import ru.itmo.gymbro.profile.api.FeedCandidates;
+import ru.itmo.gymbro.profile.api.ProfileDirectory;
 import ru.itmo.gymbro.profile.api.ProfileSnapshot;
 import ru.itmo.gymbro.profile.api.ProfileUseCases;
 import ru.itmo.gymbro.profile.api.SavedProfile;
@@ -24,21 +25,19 @@ import java.util.Set;
 
 @Service
 @Transactional(readOnly = true)
-class ProfileService implements ProfileUseCases {
+class ProfileService implements ProfileUseCases, ProfileDirectory {
 
     private static final String FILL_PROFILE_FIRST = "Сначала заполните анкету через PUT /api/v1/profiles/me";
 
     private final UserProfileRepository profiles;
     private final CurrentUserAccess access;
-    private final SportUseCases catalogSports;
-    private final GymUseCases catalogGyms;
+    private final CatalogDirectory catalog;
 
     public ProfileService(UserProfileRepository profiles, CurrentUserAccess access,
-                          SportUseCases catalogSports, GymUseCases catalogGyms) {
+                          CatalogDirectory catalog) {
         this.profiles = profiles;
         this.access = access;
-        this.catalogSports = catalogSports;
-        this.catalogGyms = catalogGyms;
+        this.catalog = catalog;
     }
 
     @Override
@@ -67,7 +66,7 @@ class ProfileService implements ProfileUseCases {
         if (new HashSet<>(sports).size() != sports.size()) {
             throw new IllegalArgumentException("Каждый вид спорта можно указать только один раз");
         }
-        sports.forEach(sport -> catalogSports.getById(sport.getSportId()));
+        sports.forEach(sport -> catalog.getSport(sport.getSportId()));
         profile.replaceSports(sports);
         return profiles.save(profile);
     }
@@ -79,18 +78,26 @@ class ProfileService implements ProfileUseCases {
         if (new HashSet<>(gymIds).size() != gymIds.size()) {
             throw new IllegalArgumentException("Каждый зал можно указать только один раз");
         }
-        gymIds.forEach(catalogGyms::getById);
+        gymIds.forEach(catalog::getGym);
         profile.replaceGyms(gymIds.stream().map(UserGym::of).toList());
         return profiles.save(profile);
     }
 
     @Override
-    public Slice<ProfileSnapshot> findFeedCandidates(long viewerUserId, Set<Long> excludedUserIds, Pageable pageable) {
+    public FeedCandidates findFeedCandidates(long viewerUserId, Set<Long> excludedUserIds, int page, int size) {
+        if (viewerUserId <= 0 || page < 0 || size < 1 || size > 50) {
+            throw new IllegalArgumentException("Некорректные параметры поиска анкет");
+        }
         UserProfile viewer = profiles.findByUserId(viewerUserId)
                 .orElseThrow(() -> new NotFoundException(FILL_PROFILE_FIRST));
         Set<Long> excluded = new HashSet<>(excludedUserIds);
         excluded.add(viewerUserId);
-        return profiles.findFeed(viewer.getId(), excluded, pageable).map(ProfileSnapshot::from);
+        Slice<ProfileSnapshot> candidates = profiles.findFeed(viewer.getId(), excluded, PageRequest.of(page, size))
+                .map(profile -> new ProfileSnapshot(profile.getUserId(), profile.getName(),
+                        profile.getAge(), profile.getAbout(),
+                        profile.getSports().stream().map(UserSport::getSportId).sorted().toList(),
+                        profile.getGyms().stream().map(UserGym::getGymId).sorted().toList()));
+        return new FeedCandidates(candidates.getContent(), page, size, candidates.hasNext());
     }
 
     private UserProfile lockMyProfile() {

@@ -16,6 +16,7 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import ru.itmo.gymbro.shared.api.ConflictException;
+import ru.itmo.gymbro.shared.api.DependencyUnavailableException;
 import ru.itmo.gymbro.shared.api.ForbiddenException;
 import ru.itmo.gymbro.shared.api.NotFoundException;
 import ru.itmo.gymbro.shared.api.UnauthorizedException;
@@ -27,6 +28,11 @@ import java.util.List;
 class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final String INVALID_REQUEST = "Некорректный запрос";
+
+    @ExceptionHandler(DependencyUnavailableException.class)
+    ProblemDetail handleDependencyUnavailable(DependencyUnavailableException exception) {
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, "Сервис недоступен", exception.getMessage());
+    }
 
     @ExceptionHandler(NotFoundException.class)
     ProblemDetail handleNotFound(NotFoundException exception) {

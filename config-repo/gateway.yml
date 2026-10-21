@@ -10,6 +10,17 @@ spring:
       server:
         webflux:
           routes:
+            - id: identity-api
+              uri: lb://identity-service
+              order: -10
+              predicates:
+                - Path=/api/v1/users,/api/v1/users/**
+            - id: identity-docs
+              uri: lb://identity-service
+              predicates:
+                - Path=/identity/v3/api-docs
+              filters:
+                - StripPrefix=1
             - id: monolith-api
               uri: lb://monolith
               predicates:

@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +17,8 @@ import ru.itmo.gymbro.matching.model.Match;
 import ru.itmo.gymbro.matching.repository.LikeRepository;
 import ru.itmo.gymbro.matching.repository.MatchRepository;
 import ru.itmo.gymbro.profile.api.ProfileSnapshot;
-import ru.itmo.gymbro.profile.api.ProfileUseCases;
+import ru.itmo.gymbro.profile.api.ProfileDirectory;
+import ru.itmo.gymbro.profile.api.FeedCandidates;
 import ru.itmo.gymbro.shared.api.ConflictException;
 import ru.itmo.gymbro.shared.api.CurrentUserAccess;
 import ru.itmo.gymbro.shared.api.NotFoundException;
@@ -32,11 +34,11 @@ class MatchingService implements MatchingUseCases {
 
     private final CurrentUserAccess access;
     private final UserDirectory users;
-    private final ProfileUseCases profiles;
+    private final ProfileDirectory profiles;
     private final LikeRepository likes;
     private final MatchRepository matches;
 
-    public MatchingService(CurrentUserAccess access, UserDirectory users, ProfileUseCases profiles,
+    public MatchingService(CurrentUserAccess access, UserDirectory users, ProfileDirectory profiles,
                            LikeRepository likes, MatchRepository matches) {
         this.access = access;
         this.users = users;
@@ -50,8 +52,10 @@ class MatchingService implements MatchingUseCases {
         long viewerId = access.requireActiveUser();
         Set<Long> excluded = new HashSet<>(likes.findLikedUserIds(viewerId));
         excluded.addAll(users.bannedUserIds());
-        return profiles.findFeedCandidates(viewerId, excluded,
-                PageRequest.of(pageable.getPageNumber(), pageable.getPageSize()));
+        FeedCandidates candidates = profiles.findFeedCandidates(viewerId, excluded,
+                pageable.getPageNumber(), pageable.getPageSize());
+        return new SliceImpl<>(candidates.items(), PageRequest.of(candidates.page(), candidates.size()),
+                candidates.hasNext());
     }
 
     @Override

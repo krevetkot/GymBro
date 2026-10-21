@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: identity-005-logical-deletion
+      author: gymbro
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: deleted
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

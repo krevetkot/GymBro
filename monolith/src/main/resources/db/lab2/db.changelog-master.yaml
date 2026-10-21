@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - include:
+      file: db/lab2/02-catalog.yaml
+  - include:
+      file: db/lab2/03-profile.yaml
+  - include:
+      file: db/lab2/04-matching.yaml

@@ -43,13 +43,13 @@ class UserService implements UserUseCases, UserDirectory, CurrentUserAccess {
 
     @Override
     public User getById(long id) {
-        return users.findById(id)
+        return users.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь " + id + " не найден"));
     }
 
     @Override
     public Page<User> getPage(Pageable pageable) {
-        return users.findAll(PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by("id")));
+        return users.findAllByDeletedFalse(PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by("id")));
     }
 
     @Override
@@ -73,15 +73,13 @@ class UserService implements UserUseCases, UserDirectory, CurrentUserAccess {
     @Override
     @Transactional
     public void delete(long id) {
-        if (!users.existsById(id)) {
-            throw new NotFoundException("Пользователь " + id + " не найден");
-        }
-        users.deleteById(id);
+        getById(id).delete();
     }
 
     @Override
     public UserSnapshot getSnapshot(long id) {
-        return UserSnapshot.from(getById(id));
+        User user = getById(id);
+        return new UserSnapshot(user.getId(), user.isActive(), user.isAdmin());
     }
 
     @Override
@@ -105,7 +103,7 @@ class UserService implements UserUseCases, UserDirectory, CurrentUserAccess {
 
     private User activeCurrentUser() {
         long id = currentUser.currentUserId();
-        User user = users.findById(id)
+        User user = users.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new UnauthorizedException("Текущий пользователь не найден"));
         if (!user.isActive()) {
             throw new ForbiddenException("Пользователь заблокирован");

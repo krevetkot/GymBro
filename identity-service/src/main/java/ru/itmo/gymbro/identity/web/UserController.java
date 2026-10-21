@@ -83,7 +83,8 @@ class UserController {
     @DeleteMapping("/{id}")
     @Operation(summary = "Удалить пользователя",
             description = "Проверка владельца записи пока не реализована. "
-                    + "Связанные данные удаляются согласно внешним ключам БД.")
+                    + "Учётная запись помечается удалённой и больше не доступна через API. "
+                    + "Связанные данные сохраняются в сервисах-владельцах.")
     @ApiResponse(responseCode = "204", description = "Пользователь удалён")
     @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     @ApiResponse(responseCode = "409", description = "Удалению препятствуют связанные данные")

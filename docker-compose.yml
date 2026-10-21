@@ -8,15 +8,29 @@ services:
     image: postgres:17-alpine
     container_name: gymbro-db
     environment:
-      POSTGRES_DB: ${DB_NAME:-gymbro}
+      POSTGRES_DB: ${LAB2_DB_NAME:-gymbro_lab2}
       POSTGRES_USER: ${DB_USER:-gymbro}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-gymbro}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "${DB_PORT:-5433}:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata_lab2:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-gymbro} -d ${DB_NAME:-gymbro}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-gymbro} -d ${LAB2_DB_NAME:-gymbro_lab2}"]
+      <<: *healthcheck
+
+  identity-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${IDENTITY_DB_NAME:-gymbro_identity}
+      POSTGRES_USER: ${IDENTITY_DB_USER:-gymbro_identity}
+      POSTGRES_PASSWORD: ${IDENTITY_DB_PASSWORD:-gymbro_identity}
+    ports:
+      - "${IDENTITY_DB_PORT:-5434}:5432"
+    volumes:
+      - identity_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${IDENTITY_DB_USER:-gymbro_identity} -d ${IDENTITY_DB_NAME:-gymbro_identity}"]
       <<: *healthcheck
 
   config-server:
@@ -45,6 +59,28 @@ services:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8761/actuator/health | grep -q UP"]
       <<: *healthcheck
 
+  identity-service:
+    build:
+      context: .
+      args:
+        SERVICE: identity-service
+    depends_on:
+      identity-db:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      IDENTITY_DB_URL: jdbc:postgresql://identity-db:5432/${IDENTITY_DB_NAME:-gymbro_identity}
+      IDENTITY_DB_USER: ${IDENTITY_DB_USER:-gymbro_identity}
+      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:-gymbro_identity}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health | grep -q UP"]
+      <<: *healthcheck
+
   monolith:
     build:
       context: .
@@ -52,6 +88,8 @@ services:
         SERVICE: monolith
     container_name: gymbro-monolith
     depends_on:
+      identity-service:
+        condition: service_healthy
       db:
         condition: service_healthy
       config-server:
@@ -61,7 +99,7 @@ services:
     environment:
       CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_URL: http://eureka-server:8761/eureka/
-      DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-gymbro}
+      DB_URL: jdbc:postgresql://db:5432/${LAB2_DB_NAME:-gymbro_lab2}
       DB_USER: ${DB_USER:-gymbro}
       DB_PASSWORD: ${DB_PASSWORD:-gymbro}
       SQL_LOG_LEVEL: ${SQL_LOG_LEVEL:-INFO}
@@ -85,3 +123,5 @@ services:
 
 volumes:
   pgdata:
+  pgdata_lab2:
+  identity_pgdata:

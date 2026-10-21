@@ -1,14 +1,22 @@
 spring:
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://127.0.0.1:5433/gymbro}
+    url: ${DB_URL:jdbc:postgresql://127.0.0.1:5433/gymbro_lab2}
     username: ${DB_USER:gymbro}
     password: ${DB_PASSWORD:gymbro}
     hikari:
       maximum-pool-size: ${DB_POOL_SIZE:10}
 
   liquibase:
-    change-log: classpath:db/changelog/db.changelog-master.yaml
+    change-log: classpath:db/lab2/db.changelog-master.yaml
+
+  cloud:
+    openfeign:
+      client:
+        config:
+          identity-service:
+            connectTimeout: 2000
+            readTimeout: 3000
 
   jpa:
     open-in-view: false
@@ -24,6 +32,11 @@ springdoc:
     operations-sorter: method
     tags-sorter: alpha
     persist-authorization: true
+    urls:
+      - name: Каталог, анкеты и мэтчи
+        url: /v3/api-docs
+      - name: Пользователи
+        url: /identity/v3/api-docs
   api-docs:
     path: /v3/api-docs
 

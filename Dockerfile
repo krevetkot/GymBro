@@ -9,6 +9,7 @@ COPY config-server/build.gradle config-server/
 COPY eureka-server/build.gradle eureka-server/
 COPY gateway/build.gradle gateway/
 COPY monolith/build.gradle monolith/
+COPY identity-service/build.gradle identity-service/
 RUN chmod +x gradlew && ./gradlew --no-daemon :${SERVICE}:dependencies
 
 COPY ${SERVICE}/src ${SERVICE}/src

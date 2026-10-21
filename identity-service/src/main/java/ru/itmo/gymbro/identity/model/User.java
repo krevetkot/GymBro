@@ -48,6 +48,9 @@ public class User {
     @NotNull
     private Instant createdAt;
 
+    @Column(nullable = false)
+    private boolean deleted;
+
     protected User() {
     }
 
@@ -91,7 +94,11 @@ public class User {
     }
 
     public boolean isActive() {
-        return status == UserStatus.ACTIVE;
+        return !deleted && status == UserStatus.ACTIVE;
+    }
+
+    public void delete() {
+        deleted = true;
     }
 
     public boolean isAdmin() {
