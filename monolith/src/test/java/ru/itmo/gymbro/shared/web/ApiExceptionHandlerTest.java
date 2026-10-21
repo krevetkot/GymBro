@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import ru.itmo.gymbro.shared.api.ConflictException;
+import ru.itmo.gymbro.shared.api.DependencyUnavailableException;
 import ru.itmo.gymbro.shared.api.ForbiddenException;
 import ru.itmo.gymbro.shared.api.NotFoundException;
 import ru.itmo.gymbro.shared.api.UnauthorizedException;
@@ -53,6 +54,15 @@ class ApiExceptionHandlerTest {
         mvc.perform(get("/conflict")).andExpect(status().isConflict());
         mvc.perform(get("/forbidden")).andExpect(status().isForbidden());
         mvc.perform(get("/unauthorized")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Недоступный соседний сервис — 503 с понятным текстом")
+    void mapsUnavailableDependencyTo503() throws Exception {
+        mvc.perform(get("/dependency-unavailable"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.title").value("Сервис недоступен"))
+                .andExpect(jsonPath("$.detail").value("Сервис пользователей временно недоступен"));
     }
 
     @Test
@@ -146,6 +156,11 @@ class ApiExceptionHandlerTest {
         @GetMapping("/unauthorized")
         void unauthorized() {
             throw new UnauthorizedException("Не передан текущий пользователь");
+        }
+
+        @GetMapping("/dependency-unavailable")
+        void dependencyUnavailable() {
+            throw new DependencyUnavailableException("Сервис пользователей временно недоступен");
         }
 
         @GetMapping("/illegal-argument")

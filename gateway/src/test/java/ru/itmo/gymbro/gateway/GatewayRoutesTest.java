@@ -9,6 +9,8 @@ import org.springframework.cloud.gateway.route.RouteLocator;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -19,11 +21,26 @@ class GatewayRoutesTest {
     private RouteLocator routes;
 
     @Test
-    @DisplayName("API и Swagger маршрутизируются на монолит через Eureka")
-    void routesApiAndDocsToMonolith() {
-        List<Route> all = routes.getRoutes().collectList().block();
+    @DisplayName("API и Swagger каждого сервиса маршрутизируются на него через Eureka")
+    void routesEachServiceThroughEureka() {
+        Map<String, URI> targets = allRoutes().stream().collect(Collectors.toMap(Route::getId, Route::getUri));
 
-        assertThat(all).extracting(Route::getId).containsExactlyInAnyOrder("monolith-api", "monolith-docs");
-        assertThat(all).extracting(Route::getUri).containsOnly(URI.create("lb://monolith"));
+        assertThat(targets).containsExactlyInAnyOrderEntriesOf(Map.of(
+                "identity-api", URI.create("lb://identity-service"),
+                "identity-docs", URI.create("lb://identity-service"),
+                "monolith-api", URI.create("lb://monolith"),
+                "monolith-docs", URI.create("lb://monolith")));
+    }
+
+    @Test
+    @DisplayName("Маршрут пользователей проверяется раньше общего /api/** монолита")
+    void identityRouteWinsOverMonolithCatchAll() {
+        List<String> order = allRoutes().stream().map(Route::getId).toList();
+
+        assertThat(order.indexOf("identity-api")).isLessThan(order.indexOf("monolith-api"));
+    }
+
+    private List<Route> allRoutes() {
+        return routes.getRoutes().collectList().block();
     }
 }

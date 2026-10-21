@@ -27,4 +27,5 @@ dependencies {
     testImplementation 'org.testcontainers:testcontainers-postgresql'
     testImplementation "com.tngtech.archunit:archunit-junit5:${archunitVersion}"
     testImplementation "org.liquibase.ext:liquibase-hibernate7:${liquibaseHibernateVersion}"
+    testImplementation 'org.wiremock:wiremock-standalone:3.13.2'
 }

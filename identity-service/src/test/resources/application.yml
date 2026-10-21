@@ -1,0 +1,19 @@
+# В тестах Config Server не поднимается: те же файлы из config-repo читаются напрямую.
+
+spring:
+
+  application:
+    name: identity-service
+
+  config:
+    import:
+      - file:../config-repo/application.yml
+      - file:../config-repo/identity-service.yml
+
+  cloud:
+    config:
+      enabled: false
+
+eureka:
+  client:
+    enabled: false

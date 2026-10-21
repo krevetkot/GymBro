@@ -10,8 +10,6 @@ import org.springframework.web.context.WebApplicationContext;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.catalog.model.Sport;
 import ru.itmo.gymbro.catalog.repository.SportRepository;
-import ru.itmo.gymbro.identity.model.User;
-import ru.itmo.gymbro.identity.repository.UserRepository;
 import ru.itmo.gymbro.profile.model.SportLevel;
 import ru.itmo.gymbro.profile.model.UserProfile;
 import ru.itmo.gymbro.profile.model.UserSport;
@@ -33,9 +31,6 @@ class InternalProfileApiIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private WebApplicationContext context;
-
-    @Autowired
-    private UserRepository users;
 
     @Autowired
     private UserProfileRepository profiles;
@@ -75,14 +70,14 @@ class InternalProfileApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Без анкеты смотрящего — 404")
     void requiresViewerProfile() throws Exception {
-        long withoutProfile = users.save(User.register(marker + "-lonely@mail.ru", "hash")).getId();
+        long withoutProfile = testUsers.active();
 
         mvc.perform(get(FEED).param("viewerUserId", String.valueOf(withoutProfile)))
                 .andExpect(status().isNotFound());
     }
 
     private long userWithProfile(String name) {
-        long userId = users.save(User.register(marker + "-" + name + "@mail.ru", "hash")).getId();
+        long userId = testUsers.active();
         UserProfile profile = UserProfile.create(userId, name, LocalDate.of(2000, 1, 1), null);
         profile.replaceSports(List.of(UserSport.of(sport, SportLevel.BEGINNER)));
         profiles.save(profile);

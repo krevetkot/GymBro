@@ -14,8 +14,6 @@ import org.springframework.web.context.WebApplicationContext;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.catalog.model.Sport;
 import ru.itmo.gymbro.catalog.repository.SportRepository;
-import ru.itmo.gymbro.identity.model.User;
-import ru.itmo.gymbro.identity.repository.UserRepository;
 import ru.itmo.gymbro.profile.model.SportLevel;
 import ru.itmo.gymbro.profile.model.UserProfile;
 import ru.itmo.gymbro.profile.model.UserSport;
@@ -43,9 +41,6 @@ class ProfileApiIntegrationTest extends AbstractIntegrationTest {
     private WebApplicationContext context;
 
     @Autowired
-    private UserRepository users;
-
-    @Autowired
     private UserProfileRepository profiles;
 
     @Autowired
@@ -57,7 +52,7 @@ class ProfileApiIntegrationTest extends AbstractIntegrationTest {
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        userId = users.save(User.register("profile-owner@mail.ru", "hash")).getId();
+        userId = testUsers.active();
     }
 
     @Test
@@ -151,9 +146,7 @@ class ProfileApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Заблокированный пользователь не может редактировать анкету — 403")
     void rejectsBannedUser() throws Exception {
-        User user = users.findById(userId).orElseThrow();
-        user.ban();
-        users.save(user);
+        testUsers.ban(userId);
 
         saveMine(userId, "Ксения", "2003-05-17", null).andExpect(status().isForbidden());
         assertThat(profiles.existsByUserId(userId)).isFalse();

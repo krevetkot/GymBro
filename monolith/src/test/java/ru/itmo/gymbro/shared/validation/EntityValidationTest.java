@@ -9,8 +9,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.catalog.model.Sport;
 import ru.itmo.gymbro.catalog.repository.SportRepository;
-import ru.itmo.gymbro.identity.model.User;
-import ru.itmo.gymbro.identity.repository.UserRepository;
 import ru.itmo.gymbro.profile.model.UserProfile;
 import ru.itmo.gymbro.profile.repository.UserProfileRepository;
 
@@ -23,9 +21,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class EntityValidationTest extends AbstractIntegrationTest {
 
     @Autowired
-    private UserRepository users;
-
-    @Autowired
     private SportRepository sports;
 
     @Autowired
@@ -33,17 +28,6 @@ class EntityValidationTest extends AbstractIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbc;
-
-    @Test
-    @DisplayName("Пользователь с некорректным email не сохраняется")
-    void rejectsMalformedEmail() {
-        User user = User.register("not-an-email", "hash");
-
-        assertThatThrownBy(() -> users.save(user))
-                .isInstanceOfSatisfying(ConstraintViolationException.class,
-                        exception -> assertThat(violatedPaths(exception)).containsExactly("email"));
-        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE email = ?", Long.class, "not-an-email")).isZero();
-    }
 
     @Test
     @DisplayName("Вид спорта с названием длиннее колонки не сохраняется")
@@ -58,7 +42,7 @@ class EntityValidationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Анкета с именем длиннее колонки не сохраняется")
     void rejectsTooLongProfileName() {
-        long userId = users.save(User.register("longname@mail.ru", "hash")).getId();
+        long userId = testUsers.active();
         UserProfile profile = UserProfile.create(userId, "я".repeat(101), LocalDate.of(2000, 1, 1), null);
 
         assertThatThrownBy(() -> profiles.save(profile))

@@ -4,8 +4,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.itmo.gymbro.AbstractIntegrationTest;
-import ru.itmo.gymbro.identity.model.User;
-import ru.itmo.gymbro.identity.repository.UserRepository;
 import ru.itmo.gymbro.matching.model.Like;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -14,9 +12,6 @@ class LikeRepositoryTest extends AbstractIntegrationTest {
 
     @Autowired
     private LikeRepository likes;
-
-    @Autowired
-    private UserRepository users;
 
     @Test
     @DisplayName("Лайк направленный: обратный не появляется сам собой")
@@ -46,6 +41,6 @@ class LikeRepositoryTest extends AbstractIntegrationTest {
     }
 
     private long newUser(String email) {
-        return users.save(User.register(email, "hash")).getId();
+        return testUsers.active();
     }
 }

@@ -70,13 +70,18 @@ class UserRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Пользователь удаляется")
-    void deletesUser() {
+    @DisplayName("Удаление мягкое: строка остаётся, но пользователь пропадает из поиска и попадает в недоступные")
+    void softDeletesUser() {
         User user = users.save(User.register("temp@mail.ru", "hash"));
 
-        users.deleteById(user.getId());
+        user.delete();
+        users.save(user);
 
-        assertThat(users.existsById(user.getId())).isFalse();
+        assertThat(users.findById(user.getId())).isPresent();
+        assertThat(users.findByIdAndDeletedFalse(user.getId())).isEmpty();
+        assertThat(users.findAllByDeletedFalse(PageRequest.of(0, 50)).getContent()).doesNotContain(user);
+        assertThat(users.findBannedIds()).contains(user.getId());
+        assertThat(user.isActive()).isFalse();
     }
 
     @Test

@@ -17,8 +17,6 @@ import org.springframework.web.context.WebApplicationContext;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.repository.GymRepository;
-import ru.itmo.gymbro.identity.model.User;
-import ru.itmo.gymbro.identity.repository.UserRepository;
 import ru.itmo.gymbro.profile.model.SportLevel;
 import ru.itmo.gymbro.profile.model.UserGym;
 import ru.itmo.gymbro.profile.model.UserProfile;
@@ -51,9 +49,6 @@ class ProfileAggregateIntegrationTest extends AbstractIntegrationTest {
     private WebApplicationContext context;
 
     @Autowired
-    private UserRepository users;
-
-    @Autowired
     private UserProfileRepository profiles;
 
     @Autowired
@@ -72,7 +67,7 @@ class ProfileAggregateIntegrationTest extends AbstractIntegrationTest {
     void setUp() {
         mvc = MockMvcBuilders.webAppContextSetup(context).build();
         marker = UUID.randomUUID().toString();
-        userId = users.save(User.register(marker + "@mail.ru", "hash")).getId();
+        userId = testUsers.active();
         gymId = gyms.save(Gym.of("Зал", marker, "Ленина, 1")).getId();
         sportIds = jdbc.queryForList("SELECT id FROM sports ORDER BY id LIMIT 3", Long.class);
     }
@@ -80,7 +75,7 @@ class ProfileAggregateIntegrationTest extends AbstractIntegrationTest {
     @AfterEach
     void cleanUp() {
         profiles.deleteByUserId(userId);
-        users.deleteById(userId);
+        testUsers.remove(userId);
         gyms.deleteById(gymId);
     }
 

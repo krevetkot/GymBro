@@ -16,8 +16,6 @@ import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.model.Sport;
 import ru.itmo.gymbro.catalog.repository.GymRepository;
 import ru.itmo.gymbro.catalog.repository.SportRepository;
-import ru.itmo.gymbro.identity.model.User;
-import ru.itmo.gymbro.identity.repository.UserRepository;
 import ru.itmo.gymbro.profile.model.SportLevel;
 import ru.itmo.gymbro.profile.model.UserGym;
 import ru.itmo.gymbro.profile.model.UserProfile;
@@ -43,9 +41,6 @@ class ProfileSportsAndGymsApiIntegrationTest extends AbstractIntegrationTest {
     private WebApplicationContext context;
 
     @Autowired
-    private UserRepository users;
-
-    @Autowired
     private UserProfileRepository profiles;
 
     @Autowired
@@ -64,7 +59,7 @@ class ProfileSportsAndGymsApiIntegrationTest extends AbstractIntegrationTest {
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        userId = users.save(User.register("athlete@mail.ru", "hash")).getId();
+        userId = testUsers.active();
         profiles.save(UserProfile.create(userId, "Ксения", LocalDate.of(2003, 5, 17), null));
         running = sports.save(Sport.of("Ориентирование")).getId();
         swimming = sports.save(Sport.of("Водное поло")).getId();
@@ -200,7 +195,7 @@ class ProfileSportsAndGymsApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Без анкеты менять виды спорта и залы нельзя — 404")
     void requiresExistingProfile() throws Exception {
-        long withoutProfile = users.save(User.register("no-profile@mail.ru", "hash")).getId();
+        long withoutProfile = testUsers.active();
 
         putJson(withoutProfile, MY_SPORTS, sportsBody(running, "BEGINNER", swimming, "ADVANCED"))
                 .andExpect(status().isNotFound());
@@ -214,9 +209,7 @@ class ProfileSportsAndGymsApiIntegrationTest extends AbstractIntegrationTest {
         mvc.perform(put(MY_GYMS).contentType(MediaType.APPLICATION_JSON).content("{\"gymIds\":[]}"))
                 .andExpect(status().isUnauthorized());
 
-        User user = users.findById(userId).orElseThrow();
-        user.ban();
-        users.save(user);
+        testUsers.ban(userId);
 
         putJson(userId, MY_SPORTS, "{\"sports\":[]}").andExpect(status().isForbidden());
     }

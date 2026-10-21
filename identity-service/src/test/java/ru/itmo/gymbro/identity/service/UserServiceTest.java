@@ -46,13 +46,13 @@ class UserServiceTest {
     @Test
     void rejectsUnknownCurrentUser() {
         when(currentUser.currentUserId()).thenReturn(7L);
-        when(users.findById(7L)).thenReturn(Optional.empty());
+        when(users.findByIdAndDeletedFalse(7L)).thenReturn(Optional.empty());
         assertThatThrownBy(service::requireActiveUser).isInstanceOf(UnauthorizedException.class);
     }
 
     private void givenUser(Role role, UserStatus status) {
         when(currentUser.currentUserId()).thenReturn(7L);
-        when(users.findById(7L)).thenReturn(Optional.of(
+        when(users.findByIdAndDeletedFalse(7L)).thenReturn(Optional.of(
                 new User(7L, "user@example.com", "hash", role, status, Instant.now())));
     }
 }

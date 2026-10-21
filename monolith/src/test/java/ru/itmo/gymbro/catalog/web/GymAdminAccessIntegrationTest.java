@@ -12,12 +12,8 @@ import org.springframework.web.context.WebApplicationContext;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.repository.GymRepository;
-import ru.itmo.gymbro.identity.model.Role;
-import ru.itmo.gymbro.identity.model.User;
-import ru.itmo.gymbro.identity.model.UserStatus;
-import ru.itmo.gymbro.identity.repository.UserRepository;
 
-import java.time.Instant;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -30,9 +26,6 @@ class GymAdminAccessIntegrationTest extends AbstractIntegrationTest {
     private WebApplicationContext context;
     @Autowired
     private GymRepository gyms;
-    @Autowired
-    private UserRepository users;
-
     private MockMvc mvc;
     private long gymId;
 
@@ -53,11 +46,10 @@ class GymAdminAccessIntegrationTest extends AbstractIntegrationTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"update", "delete"})
-    void rejectsUsersTrainersAndBannedAdminsWithoutChangingGym(String operation) throws Exception {
-        for (Role role : Role.values()) {
-            UserStatus userStatus = role == Role.ADMIN ? UserStatus.BANNED : UserStatus.ACTIVE;
-            long userId = users.save(new User(null, role.name() + "@example.com", "hash",
-                    role, userStatus, Instant.now())).getId();
+    void rejectsNonAdminsAndBannedAdminsWithoutChangingGym(String operation) throws Exception {
+        long bannedAdmin = testUsers.admin();
+        testUsers.ban(bannedAdmin);
+        for (long userId : List.of(testUsers.active(), bannedAdmin)) {
             mvc.perform(change(operation).header("X-User-Id", userId))
                     .andExpect(status().isForbidden());
             assertUnchanged();
@@ -67,8 +59,7 @@ class GymAdminAccessIntegrationTest extends AbstractIntegrationTest {
     @ParameterizedTest
     @ValueSource(strings = {"update", "delete"})
     void allowsActiveAdmin(String operation) throws Exception {
-        long adminId = users.save(new User(null, "admin@example.com", "hash",
-                Role.ADMIN, UserStatus.ACTIVE, Instant.now())).getId();
+        long adminId = testUsers.admin();
         mvc.perform(change(operation).header("X-User-Id", adminId))
                 .andExpect(status().is(operation.equals("update") ? 200 : 204));
         if (operation.equals("update")) {

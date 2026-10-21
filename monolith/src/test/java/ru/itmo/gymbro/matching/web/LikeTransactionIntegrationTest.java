@@ -15,12 +15,9 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 import ru.itmo.gymbro.AbstractIntegrationTest;
-import ru.itmo.gymbro.identity.model.User;
-import ru.itmo.gymbro.identity.repository.UserRepository;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -40,9 +37,6 @@ class LikeTransactionIntegrationTest extends AbstractIntegrationTest {
     private WebApplicationContext context;
 
     @Autowired
-    private UserRepository users;
-
-    @Autowired
     private JdbcTemplate jdbc;
 
     private MockMvc mvc;
@@ -55,7 +49,11 @@ class LikeTransactionIntegrationTest extends AbstractIntegrationTest {
 
     @AfterEach
     void cleanUp() {
-        createdUsers.forEach(users::deleteById);
+        for (long id : createdUsers) {
+            jdbc.update("DELETE FROM matches WHERE user1_id = ? OR user2_id = ?", id, id);
+            jdbc.update("DELETE FROM likes WHERE from_user_id = ? OR to_user_id = ?", id, id);
+            testUsers.remove(id);
+        }
         createdUsers.clear();
     }
 
@@ -92,7 +90,7 @@ class LikeTransactionIntegrationTest extends AbstractIntegrationTest {
     }
 
     private long newUser() {
-        long id = users.save(User.register(UUID.randomUUID() + "@mail.ru", "hash")).getId();
+        long id = testUsers.active();
         createdUsers.add(id);
         return id;
     }

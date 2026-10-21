@@ -14,12 +14,7 @@ import org.springframework.web.context.WebApplicationContext;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.repository.GymRepository;
-import ru.itmo.gymbro.identity.model.Role;
-import ru.itmo.gymbro.identity.model.User;
-import ru.itmo.gymbro.identity.model.UserStatus;
-import ru.itmo.gymbro.identity.repository.UserRepository;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -47,17 +42,13 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private GymRepository gyms;
 
-    @Autowired
-    private UserRepository users;
-
     private long adminId;
     private MockMvc mvc;
 
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        adminId = users.save(new User(null, "catalog-admin@example.com", "hash",
-                Role.ADMIN, UserStatus.ACTIVE, Instant.now())).getId();
+        adminId = testUsers.admin();
     }
 
     static Stream<Arguments> catalogs() {

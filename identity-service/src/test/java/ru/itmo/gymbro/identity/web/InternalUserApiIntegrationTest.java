@@ -59,16 +59,30 @@ class InternalUserApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Список забаненных содержит только забаненных")
+    @DisplayName("Снапшот удалённого пользователя — 404, как будто его нет")
+    void deletedUserIsMissing() throws Exception {
+        User user = users.save(User.register(marker + "-deleted@mail.ru", "hash"));
+        user.delete();
+        users.save(user);
+
+        mvc.perform(get(INTERNAL_USERS + "/" + user.getId())).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Список недоступных содержит забаненных и удалённых, но не активных")
     void listsBannedIds() throws Exception {
         User bannedUser = User.register(marker + "-banned@mail.ru", "hash");
         bannedUser.ban();
         long banned = users.save(bannedUser).getId();
+        User deletedUser = User.register(marker + "-gone@mail.ru", "hash");
+        deletedUser.delete();
+        long deleted = users.save(deletedUser).getId();
         long active = users.save(User.register(marker + "-active@mail.ru", "hash")).getId();
 
         mvc.perform(get(INTERNAL_USERS + "/banned-ids"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasItem((int) banned)))
+                .andExpect(jsonPath("$", hasItem((int) deleted)))
                 .andExpect(jsonPath("$", not(hasItem((int) active))));
     }
 }

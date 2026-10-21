@@ -13,8 +13,6 @@ import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.model.Sport;
 import ru.itmo.gymbro.catalog.repository.GymRepository;
 import ru.itmo.gymbro.catalog.repository.SportRepository;
-import ru.itmo.gymbro.identity.model.User;
-import ru.itmo.gymbro.identity.repository.UserRepository;
 import ru.itmo.gymbro.matching.model.Like;
 import ru.itmo.gymbro.matching.repository.LikeRepository;
 import ru.itmo.gymbro.profile.model.SportLevel;
@@ -42,9 +40,6 @@ class FeedApiIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private WebApplicationContext context;
-
-    @Autowired
-    private UserRepository users;
 
     @Autowired
     private UserProfileRepository profiles;
@@ -85,9 +80,7 @@ class FeedApiIntegrationTest extends AbstractIntegrationTest {
         banned = userWithProfile("banned", List.of(sportA, sportB), List.of(gym));
         alreadyLiked = userWithProfile("liked", List.of(sportA, sportB), List.of(gym));
 
-        User bannedUser = users.findById(banned).orElseThrow();
-        bannedUser.ban();
-        users.save(bannedUser);
+        testUsers.ban(banned);
         likes.save(Like.from(viewer, alreadyLiked));
         likes.save(Like.from(partialMatch, viewer));
     }
@@ -149,7 +142,7 @@ class FeedApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Без своей анкеты ленты нет — 404")
     void requiresViewerProfile() throws Exception {
-        long withoutProfile = users.save(User.register(marker + "-lonely@mail.ru", "hash")).getId();
+        long withoutProfile = testUsers.active();
 
         mvc.perform(get(FEED).header("X-User-Id", withoutProfile)).andExpect(status().isNotFound());
     }
@@ -162,7 +155,7 @@ class FeedApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     private long userWithProfile(String name, List<Long> sportIds, List<Long> gymIds) {
-        long userId = users.save(User.register(marker + "-" + name + "@mail.ru", "hash")).getId();
+        long userId = testUsers.active();
         UserProfile profile = UserProfile.create(userId, name, LocalDate.of(2000, 1, 1), null);
         profile.replaceSports(sportIds.stream().map(id -> UserSport.of(id, SportLevel.BEGINNER)).toList());
         profile.replaceGyms(gymIds.stream().map(UserGym::of).toList());

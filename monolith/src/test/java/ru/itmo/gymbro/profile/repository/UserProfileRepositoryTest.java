@@ -8,8 +8,6 @@ import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.model.Sport;
 import ru.itmo.gymbro.catalog.repository.GymRepository;
 import ru.itmo.gymbro.catalog.repository.SportRepository;
-import ru.itmo.gymbro.identity.model.User;
-import ru.itmo.gymbro.identity.repository.UserRepository;
 import ru.itmo.gymbro.profile.model.SportLevel;
 import ru.itmo.gymbro.profile.model.UserGym;
 import ru.itmo.gymbro.profile.model.UserProfile;
@@ -24,9 +22,6 @@ class UserProfileRepositoryTest extends AbstractIntegrationTest {
 
     @Autowired
     private UserProfileRepository profiles;
-
-    @Autowired
-    private UserRepository users;
 
     @Autowired
     private SportRepository sports;
@@ -91,7 +86,7 @@ class UserProfileRepositoryTest extends AbstractIntegrationTest {
     }
 
     private long newUser(String email) {
-        return users.save(User.register(email, "hash")).getId();
+        return testUsers.active();
     }
 
     private long newSport(String name) {

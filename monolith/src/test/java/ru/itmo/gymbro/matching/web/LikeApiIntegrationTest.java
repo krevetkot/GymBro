@@ -15,8 +15,6 @@ import org.springframework.web.context.WebApplicationContext;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.repository.GymRepository;
-import ru.itmo.gymbro.identity.model.User;
-import ru.itmo.gymbro.identity.repository.UserRepository;
 import ru.itmo.gymbro.matching.repository.LikeRepository;
 import ru.itmo.gymbro.matching.repository.MatchRepository;
 import ru.itmo.gymbro.profile.model.UserGym;
@@ -40,9 +38,6 @@ class LikeApiIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private WebApplicationContext context;
-
-    @Autowired
-    private UserRepository users;
 
     @Autowired
     private UserProfileRepository profiles;
@@ -211,13 +206,11 @@ class LikeApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     private long newUser() {
-        return users.save(User.register(UUID.randomUUID() + "@mail.ru", "hash")).getId();
+        return testUsers.active();
     }
 
     private void ban(long userId) {
-        User user = users.findById(userId).orElseThrow();
-        user.ban();
-        users.save(user);
+        testUsers.ban(userId);
     }
 
     private void withProfileInGym(long userId, long gymId) {

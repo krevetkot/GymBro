@@ -17,10 +17,6 @@ import ru.itmo.gymbro.catalog.model.GymRequest;
 import ru.itmo.gymbro.catalog.model.RequestStatus;
 import ru.itmo.gymbro.catalog.repository.GymRepository;
 import ru.itmo.gymbro.catalog.repository.GymRequestRepository;
-import ru.itmo.gymbro.identity.model.Role;
-import ru.itmo.gymbro.identity.model.User;
-import ru.itmo.gymbro.identity.model.UserStatus;
-import ru.itmo.gymbro.identity.repository.UserRepository;
 
 import java.time.Instant;
 
@@ -38,10 +34,7 @@ class GymRequestApiIntegrationTest extends AbstractIntegrationTest {
     private static final String BODY = "{\"name\":\" New gym \",\"city\":\" City \",\"address\":\" Address \"}";
 
     @Autowired
-    private WebApplicationContext context;
-    @Autowired
-    private UserRepository users;
-    @Autowired
+    private WebApplicationContext context;    @Autowired
     private GymRequestRepository requests;
     @Autowired
     private GymRepository gyms;
@@ -55,9 +48,8 @@ class GymRequestApiIntegrationTest extends AbstractIntegrationTest {
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        authorId = users.save(User.register("request-author@example.com", "hash")).getId();
-        adminId = users.save(new User(null, "request-admin@example.com", "hash",
-                Role.ADMIN, UserStatus.ACTIVE, Instant.now())).getId();
+        authorId = testUsers.active();
+        adminId = testUsers.admin();
     }
 
     @Test
@@ -109,12 +101,8 @@ class GymRequestApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void deniesBannedUserAndBannedAdmin() throws Exception {
-        User author = users.findById(authorId).orElseThrow();
-        author.ban();
-        users.save(author);
-        User admin = users.findById(adminId).orElseThrow();
-        admin.ban();
-        users.save(admin);
+        testUsers.ban(authorId);
+        testUsers.ban(adminId);
 
         mvc.perform(post(PATH).header("X-User-Id", authorId)
                         .contentType(MediaType.APPLICATION_JSON).content(BODY))

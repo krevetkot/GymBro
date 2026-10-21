@@ -8,14 +8,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import ru.itmo.gymbro.AbstractIntegrationTest;
-import ru.itmo.gymbro.identity.model.User;
-import ru.itmo.gymbro.identity.repository.UserRepository;
 import ru.itmo.gymbro.matching.model.Match;
 import ru.itmo.gymbro.matching.repository.MatchRepository;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.UUID;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
@@ -30,9 +27,6 @@ class MatchesApiIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private WebApplicationContext context;
-
-    @Autowired
-    private UserRepository users;
 
     @Autowired
     private MatchRepository matches;
@@ -102,15 +96,13 @@ class MatchesApiIntegrationTest extends AbstractIntegrationTest {
     void checksCurrentUser() throws Exception {
         mvc.perform(get(MATCHES)).andExpect(status().isUnauthorized());
 
-        User user = users.findById(viewer).orElseThrow();
-        user.ban();
-        users.save(user);
+        testUsers.ban(viewer);
 
         mvc.perform(get(MATCHES).header("X-User-Id", viewer)).andExpect(status().isForbidden());
     }
 
     private long newUser() {
-        return users.save(User.register(UUID.randomUUID() + "@mail.ru", "hash")).getId();
+        return testUsers.active();
     }
 
     private static Match pair(long one, long another, Instant createdAt) {

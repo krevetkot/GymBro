@@ -23,10 +23,6 @@ import ru.itmo.gymbro.catalog.model.GymRequest;
 import ru.itmo.gymbro.catalog.model.RequestStatus;
 import ru.itmo.gymbro.catalog.repository.GymRepository;
 import ru.itmo.gymbro.catalog.repository.GymRequestRepository;
-import ru.itmo.gymbro.identity.model.Role;
-import ru.itmo.gymbro.identity.model.User;
-import ru.itmo.gymbro.identity.model.UserStatus;
-import ru.itmo.gymbro.identity.repository.UserRepository;
 import ru.itmo.gymbro.profile.model.SportLevel;
 import ru.itmo.gymbro.profile.model.UserGym;
 import ru.itmo.gymbro.profile.model.UserProfile;
@@ -59,10 +55,7 @@ class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private WebApplicationContext context;
     @Autowired
-    private PlatformTransactionManager transactionManager;
-    @Autowired
-    private UserRepository users;
-    @Autowired
+    private PlatformTransactionManager transactionManager;    @Autowired
     private GymRepository gyms;
     @MockitoSpyBean
     private GymRequestRepository requests;
@@ -87,9 +80,8 @@ class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
         transaction = new TransactionTemplate(transactionManager);
         city = "Review-" + UUID.randomUUID();
         transaction.executeWithoutResult(status -> {
-            authorId = users.save(User.register(city + "-user@example.com", "hash")).getId();
-            adminId = users.save(new User(null, city + "-admin@example.com", "hash",
-                    Role.ADMIN, UserStatus.ACTIVE, Instant.now())).getId();
+            authorId = testUsers.active();
+            adminId = testUsers.admin();
             existingGymId = gyms.save(Gym.of("Old gym", city, "Old address")).getId();
             UserProfile profile = UserProfile.create(authorId, "Author", LocalDate.of(2000, 1, 1), "About");
             profile.replaceGyms(List.of(UserGym.of(existingGymId)));
@@ -106,8 +98,8 @@ class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
             jdbc.update("DELETE FROM gym_requests WHERE author_id = ?", authorId);
             profiles.deleteByUserId(authorId);
             jdbc.update("DELETE FROM gyms WHERE city = ?", city);
-            users.deleteById(authorId);
-            users.deleteById(adminId);
+            testUsers.remove(authorId);
+            testUsers.remove(adminId);
         });
     }
 
@@ -248,9 +240,7 @@ class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
         mvc.perform(post(action(-1, operation)).header("X-User-Id", adminId))
                 .andExpect(status().isBadRequest());
         transaction.executeWithoutResult(status -> {
-            User admin = users.findById(adminId).orElseThrow();
-            admin.ban();
-            users.save(admin);
+            testUsers.ban(adminId);
         });
         mvc.perform(post(action(requestId, operation)).header("X-User-Id", adminId))
                 .andExpect(status().isForbidden());

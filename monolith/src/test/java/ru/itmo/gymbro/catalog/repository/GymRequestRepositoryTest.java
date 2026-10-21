@@ -7,8 +7,6 @@ import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.model.GymRequest;
 import ru.itmo.gymbro.catalog.model.RequestStatus;
-import ru.itmo.gymbro.identity.model.User;
-import ru.itmo.gymbro.identity.repository.UserRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -19,9 +17,6 @@ class GymRequestRepositoryTest extends AbstractIntegrationTest {
 
     @Autowired
     private GymRepository gyms;
-
-    @Autowired
-    private UserRepository users;
 
     @Test
     @DisplayName("Новая заявка сохраняется в статусе PENDING без зала и проверяющего")
@@ -57,6 +52,6 @@ class GymRequestRepositoryTest extends AbstractIntegrationTest {
     }
 
     private long newUser(String email) {
-        return users.save(User.register(email, "hash")).getId();
+        return testUsers.active();
     }
 }
