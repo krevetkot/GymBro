@@ -12,20 +12,58 @@ spring:
           routes:
             - id: identity-api
               uri: lb://identity-service
-              order: -10
               predicates:
                 - Path=/api/v1/users,/api/v1/users/**
+            - id: catalog-api
+              uri: lb://catalog-service
+              predicates:
+                - Path=/api/v1/sports,/api/v1/sports/**,/api/v1/gyms,/api/v1/gyms/**,/api/v1/gym-requests,/api/v1/gym-requests/**
+            - id: profile-api
+              uri: lb://profile-service
+              predicates:
+                - Path=/api/v1/profiles,/api/v1/profiles/**
+            - id: matching-api
+              uri: lb://matching-service
+              predicates:
+                - Path=/api/v1/feed,/api/v1/feed/**,/api/v1/likes,/api/v1/likes/**,/api/v1/matches,/api/v1/matches/**
             - id: identity-docs
               uri: lb://identity-service
               predicates:
                 - Path=/identity/v3/api-docs
               filters:
                 - StripPrefix=1
-            - id: monolith-api
-              uri: lb://monolith
+            - id: catalog-docs
+              uri: lb://catalog-service
               predicates:
-                - Path=/api/**
-            - id: monolith-docs
-              uri: lb://monolith
+                - Path=/catalog/v3/api-docs
+              filters:
+                - StripPrefix=1
+            - id: profile-docs
+              uri: lb://profile-service
               predicates:
-                - Path=/v3/api-docs/**,/swagger-ui.html,/swagger-ui/**
+                - Path=/profile/v3/api-docs
+              filters:
+                - StripPrefix=1
+            - id: matching-docs
+              uri: lb://matching-service
+              predicates:
+                - Path=/matching/v3/api-docs
+              filters:
+                - StripPrefix=1
+
+# Общий Swagger: одна страница на gateway, документация каждого сервиса — через его маршрут.
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    persist-authorization: true
+    urls:
+      - name: Пользователи
+        url: /identity/v3/api-docs
+      - name: Каталог
+        url: /catalog/v3/api-docs
+      - name: Анкеты
+        url: /profile/v3/api-docs
+      - name: Лента, лайки и мэтчи
+        url: /matching/v3/api-docs

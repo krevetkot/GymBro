@@ -21,20 +21,20 @@ class ConfigServerApplicationTest {
     @Test
     @DisplayName("Сервису отдаются его файл и общий application.yml из config-repo, свой файл важнее")
     void servesServiceAndSharedConfig() {
-        Environment environment = repository.findOne("monolith", "default", null);
+        Environment environment = repository.findOne("matching-service", "default", null);
 
         List<String> sources = environment.getPropertySources().stream().map(PropertySource::getName).toList();
         assertThat(sources).hasSize(2);
-        assertThat(sources.get(0)).endsWith("monolith.yml");
+        assertThat(sources.get(0)).endsWith("matching-service.yml");
         assertThat(sources.get(1)).endsWith("application.yml");
     }
 
     @Test
     @DisplayName("Плейсхолдеры переменных окружения отдаются как есть и раскрываются на стороне сервиса")
     void keepsEnvironmentPlaceholders() {
-        Environment environment = repository.findOne("monolith", "default", null);
+        Environment environment = repository.findOne("matching-service", "default", null);
 
         Object url = environment.getPropertySources().getFirst().getSource().get("spring.datasource.url");
-        assertThat(url).asString().startsWith("${DB_URL:");
+        assertThat(url).asString().startsWith("${MATCHING_DB_URL:");
     }
 }

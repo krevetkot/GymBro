@@ -12,6 +12,14 @@ spring:
   jackson:
     default-property-inclusion: non_null
 
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 2000
+            readTimeout: 3000
+
 eureka:
   client:
     service-url:

@@ -1,0 +1,28 @@
+spring:
+
+  datasource:
+    url: ${MATCHING_DB_URL:jdbc:postgresql://localhost:5437/gymbro_matching}
+    username: ${MATCHING_DB_USER:gymbro_matching}
+    password: ${MATCHING_DB_PASSWORD:gymbro_matching}
+    hikari:
+      maximum-pool-size: ${MATCHING_DB_POOL_SIZE:10}
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+
+server:
+  port: ${MATCHING_PORT:8085}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    org.hibernate.SQL: ${SQL_LOG_LEVEL:INFO}
+    liquibase: INFO

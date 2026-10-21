@@ -3,24 +3,16 @@ x-healthcheck: &healthcheck
   timeout: 5s
   retries: 30
 
-services:
-  db:
-    image: postgres:17-alpine
-    container_name: gymbro-db
-    environment:
-      POSTGRES_DB: ${LAB2_DB_NAME:-gymbro_lab2}
-      POSTGRES_USER: ${DB_USER:-gymbro}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-gymbro}
-    ports:
-      - "${DB_PORT:-5433}:5432"
-    volumes:
-      - pgdata_lab2:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-gymbro} -d ${LAB2_DB_NAME:-gymbro_lab2}"]
-      <<: *healthcheck
+x-cloud-env: &cloud-env
+  CONFIG_SERVER_URL: http://config-server:8888
+  EUREKA_URL: http://eureka-server:8761/eureka/
+  SQL_LOG_LEVEL: ${SQL_LOG_LEVEL:-INFO}
 
+# У каждого сервиса своя база в своём контейнере PostgreSQL.
+services:
   identity-db:
     image: postgres:17-alpine
+    container_name: gymbro-identity-db
     environment:
       POSTGRES_DB: ${IDENTITY_DB_NAME:-gymbro_identity}
       POSTGRES_USER: ${IDENTITY_DB_USER:-gymbro_identity}
@@ -31,6 +23,51 @@ services:
       - identity_pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${IDENTITY_DB_USER:-gymbro_identity} -d ${IDENTITY_DB_NAME:-gymbro_identity}"]
+      <<: *healthcheck
+
+  catalog-db:
+    image: postgres:17-alpine
+    container_name: gymbro-catalog-db
+    environment:
+      POSTGRES_DB: ${CATALOG_DB_NAME:-gymbro_catalog}
+      POSTGRES_USER: ${CATALOG_DB_USER:-gymbro_catalog}
+      POSTGRES_PASSWORD: ${CATALOG_DB_PASSWORD:-gymbro_catalog}
+    ports:
+      - "${CATALOG_DB_PORT:-5435}:5432"
+    volumes:
+      - catalog_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CATALOG_DB_USER:-gymbro_catalog} -d ${CATALOG_DB_NAME:-gymbro_catalog}"]
+      <<: *healthcheck
+
+  profile-db:
+    image: postgres:17-alpine
+    container_name: gymbro-profile-db
+    environment:
+      POSTGRES_DB: ${PROFILE_DB_NAME:-gymbro_profile}
+      POSTGRES_USER: ${PROFILE_DB_USER:-gymbro_profile}
+      POSTGRES_PASSWORD: ${PROFILE_DB_PASSWORD:-gymbro_profile}
+    ports:
+      - "${PROFILE_DB_PORT:-5436}:5432"
+    volumes:
+      - profile_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PROFILE_DB_USER:-gymbro_profile} -d ${PROFILE_DB_NAME:-gymbro_profile}"]
+      <<: *healthcheck
+
+  matching-db:
+    image: postgres:17-alpine
+    container_name: gymbro-matching-db
+    environment:
+      POSTGRES_DB: ${MATCHING_DB_NAME:-gymbro_matching}
+      POSTGRES_USER: ${MATCHING_DB_USER:-gymbro_matching}
+      POSTGRES_PASSWORD: ${MATCHING_DB_PASSWORD:-gymbro_matching}
+    ports:
+      - "${MATCHING_DB_PORT:-5437}:5432"
+    volumes:
+      - matching_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MATCHING_DB_USER:-gymbro_matching} -d ${MATCHING_DB_NAME:-gymbro_matching}"]
       <<: *healthcheck
 
   config-server:
@@ -64,6 +101,7 @@ services:
       context: .
       args:
         SERVICE: identity-service
+    container_name: gymbro-identity-service
     depends_on:
       identity-db:
         condition: service_healthy
@@ -72,8 +110,7 @@ services:
       eureka-server:
         condition: service_healthy
     environment:
-      CONFIG_SERVER_URL: http://config-server:8888
-      EUREKA_URL: http://eureka-server:8761/eureka/
+      <<: *cloud-env
       IDENTITY_DB_URL: jdbc:postgresql://identity-db:5432/${IDENTITY_DB_NAME:-gymbro_identity}
       IDENTITY_DB_USER: ${IDENTITY_DB_USER:-gymbro_identity}
       IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:-gymbro_identity}
@@ -81,28 +118,71 @@ services:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health | grep -q UP"]
       <<: *healthcheck
 
-  monolith:
+  catalog-service:
     build:
       context: .
       args:
-        SERVICE: monolith
-    container_name: gymbro-monolith
+        SERVICE: catalog-service
+    container_name: gymbro-catalog-service
     depends_on:
-      identity-service:
-        condition: service_healthy
-      db:
+      catalog-db:
         condition: service_healthy
       config-server:
         condition: service_healthy
       eureka-server:
         condition: service_healthy
     environment:
-      CONFIG_SERVER_URL: http://config-server:8888
-      EUREKA_URL: http://eureka-server:8761/eureka/
-      DB_URL: jdbc:postgresql://db:5432/${LAB2_DB_NAME:-gymbro_lab2}
-      DB_USER: ${DB_USER:-gymbro}
-      DB_PASSWORD: ${DB_PASSWORD:-gymbro}
-      SQL_LOG_LEVEL: ${SQL_LOG_LEVEL:-INFO}
+      <<: *cloud-env
+      CATALOG_DB_URL: jdbc:postgresql://catalog-db:5432/${CATALOG_DB_NAME:-gymbro_catalog}
+      CATALOG_DB_USER: ${CATALOG_DB_USER:-gymbro_catalog}
+      CATALOG_DB_PASSWORD: ${CATALOG_DB_PASSWORD:-gymbro_catalog}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8083/actuator/health | grep -q UP"]
+      <<: *healthcheck
+
+  profile-service:
+    build:
+      context: .
+      args:
+        SERVICE: profile-service
+    container_name: gymbro-profile-service
+    depends_on:
+      profile-db:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    environment:
+      <<: *cloud-env
+      PROFILE_DB_URL: jdbc:postgresql://profile-db:5432/${PROFILE_DB_NAME:-gymbro_profile}
+      PROFILE_DB_USER: ${PROFILE_DB_USER:-gymbro_profile}
+      PROFILE_DB_PASSWORD: ${PROFILE_DB_PASSWORD:-gymbro_profile}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8084/actuator/health | grep -q UP"]
+      <<: *healthcheck
+
+  matching-service:
+    build:
+      context: .
+      args:
+        SERVICE: matching-service
+    container_name: gymbro-matching-service
+    depends_on:
+      matching-db:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    environment:
+      <<: *cloud-env
+      MATCHING_DB_URL: jdbc:postgresql://matching-db:5432/${MATCHING_DB_NAME:-gymbro_matching}
+      MATCHING_DB_USER: ${MATCHING_DB_USER:-gymbro_matching}
+      MATCHING_DB_PASSWORD: ${MATCHING_DB_PASSWORD:-gymbro_matching}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8085/actuator/health | grep -q UP"]
+      <<: *healthcheck
 
   gateway:
     build:
@@ -116,12 +196,12 @@ services:
       eureka-server:
         condition: service_healthy
     environment:
-      CONFIG_SERVER_URL: http://config-server:8888
-      EUREKA_URL: http://eureka-server:8761/eureka/
+      <<: *cloud-env
     ports:
       - "${APP_PORT:-8080}:8080"
 
 volumes:
-  pgdata:
-  pgdata_lab2:
   identity_pgdata:
+  catalog_pgdata:
+  profile_pgdata:
+  matching_pgdata:

@@ -5,6 +5,7 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -29,6 +30,7 @@ class OpenApiConfiguration {
                                 .name(HeaderCurrentUserProvider.USER_ID_HEADER)
                                 .description("Идентификатор текущего пользователя. "
                                         + "Временная замена JWT до появления spring-security")))
-                .addSecurityItem(new SecurityRequirement().addList(CURRENT_USER_SCHEME));
+                .addSecurityItem(new SecurityRequirement().addList(CURRENT_USER_SCHEME))
+                .addServersItem(new Server().url("/").description("Через gateway"));
     }
 }

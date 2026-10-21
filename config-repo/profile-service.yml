@@ -1,0 +1,28 @@
+spring:
+
+  datasource:
+    url: ${PROFILE_DB_URL:jdbc:postgresql://localhost:5436/gymbro_profile}
+    username: ${PROFILE_DB_USER:gymbro_profile}
+    password: ${PROFILE_DB_PASSWORD:gymbro_profile}
+    hikari:
+      maximum-pool-size: ${PROFILE_DB_POOL_SIZE:10}
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+
+server:
+  port: ${PROFILE_PORT:8084}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    org.hibernate.SQL: ${SQL_LOG_LEVEL:INFO}
+    liquibase: INFO
