@@ -2,6 +2,8 @@ package ru.itmo.gymbro.catalog.client;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,6 +24,7 @@ import java.net.URI;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
@@ -64,8 +67,12 @@ class RemoteCatalogDirectoryTest extends AbstractIntegrationTest {
         CATALOG.stop();
     }
 
+    @Autowired
+    private CircuitBreakerRegistry breakers;
+
     @BeforeEach
     void resetStubs() {
+        breakers.getAllCircuitBreakers().forEach(CircuitBreaker::reset);
         CATALOG.resetAll();
     }
 
@@ -113,5 +120,20 @@ class RemoteCatalogDirectoryTest extends AbstractIntegrationTest {
         assertThatThrownBy(() -> directory.getSport(3))
                 .isInstanceOf(DependencyUnavailableException.class)
                 .hasMessage("Сервис каталога временно недоступен");
+    }
+
+    @Test
+    @DisplayName("После серии сбоев автомат размыкается: 503 сразу, без запроса к соседу")
+    void opensAfterFailuresAndStopsCalling() {
+        CATALOG.stubFor(get(urlEqualTo("/internal/v1/catalog/sports/3")).willReturn(problem(503)));
+        for (int call = 0; call < 5; call++) {
+            assertThatThrownBy(() -> directory.getSport(3)).isInstanceOf(DependencyUnavailableException.class);
+        }
+
+        CATALOG.resetRequests();
+        assertThatThrownBy(() -> directory.getSport(3))
+                .isInstanceOf(DependencyUnavailableException.class)
+                .hasMessageContaining("запросы к нему приостановлены");
+        CATALOG.verify(0, getRequestedFor(urlEqualTo("/internal/v1/catalog/sports/3")));
     }
 }

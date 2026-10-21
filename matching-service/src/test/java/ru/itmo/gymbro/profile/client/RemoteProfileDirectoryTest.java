@@ -2,6 +2,8 @@ package ru.itmo.gymbro.profile.client;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -12,7 +14,6 @@ import org.springframework.test.context.DynamicPropertySource;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.profile.api.FeedCandidates;
 import ru.itmo.gymbro.profile.api.ProfileSnapshot;
-import ru.itmo.gymbro.shared.api.DependencyUnavailableException;
 import ru.itmo.gymbro.shared.api.NotFoundException;
 
 import java.io.IOException;
@@ -41,6 +42,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class RemoteProfileDirectoryTest extends AbstractIntegrationTest {
 
     private static final String FEED = "/internal/v1/profiles/feed";
+    private static final String EMPTY_PAGE = "{\"items\":[],\"page\":0,\"size\":20,\"hasNext\":false}";
     private static final WireMockServer PROFILES = new WireMockServer(options().dynamicPort());
 
     static {
@@ -51,9 +53,13 @@ class RemoteProfileDirectoryTest extends AbstractIntegrationTest {
     @Autowired
     private RemoteProfileDirectory directory;
 
+    @Autowired
+    private CircuitBreakerRegistry breakers;
+
     @DynamicPropertySource
     static void profileUrl(DynamicPropertyRegistry registry) {
         registry.add("spring.cloud.openfeign.client.config.profile-service.url", PROFILES::baseUrl);
+        registry.add("resilience4j.circuitbreaker.configs.default.wait-duration-in-open-state", () -> "1s");
     }
 
     /** Первый запрос к только что запущенному WireMock обрабатывается дольше таймаута клиента. */
@@ -72,7 +78,8 @@ class RemoteProfileDirectoryTest extends AbstractIntegrationTest {
     }
 
     @BeforeEach
-    void resetStubs() {
+    void resetStubsAndBreakers() {
+        breakers.getAllCircuitBreakers().forEach(CircuitBreaker::reset);
         PROFILES.resetAll();
     }
 
@@ -111,12 +118,71 @@ class RemoteProfileDirectoryTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("5xx от сервиса анкет — сервис анкет недоступен")
-    void mapsServerError() {
+    @DisplayName("5xx от сервиса анкет — fallback отдаёт пустую ленту вместо ошибки")
+    void fallsBackToEmptyFeedOnServerError() {
         PROFILES.stubFor(get(urlPathEqualTo(FEED)).willReturn(problem(500)));
 
-        assertThatThrownBy(() -> directory.findFeedCandidates(7, Set.of(), 0, 20))
-                .isInstanceOf(DependencyUnavailableException.class)
-                .hasMessage("Сервис анкет временно недоступен");
+        assertThat(directory.findFeedCandidates(7, Set.of(), 2, 20))
+                .isEqualTo(new FeedCandidates(List.of(), 2, 20, false));
+    }
+
+    @Test
+    @DisplayName("Сервис анкет не ответил вовремя — fallback отдаёт пустую ленту")
+    void fallsBackToEmptyFeedOnTimeout() {
+        PROFILES.stubFor(get(urlPathEqualTo(FEED)).willReturn(okJson(EMPTY_PAGE).withFixedDelay(5_000)));
+
+        assertThat(directory.findFeedCandidates(7, Set.of(), 0, 20).items()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("После серии сбоев автомат размыкается: запросы к сервису анкет больше не уходят")
+    void opensAfterFailuresAndStopsCallingProfiles() {
+        PROFILES.stubFor(get(urlPathEqualTo(FEED)).willReturn(problem(503)));
+
+        for (int call = 0; call < 5; call++) {
+            directory.findFeedCandidates(7, Set.of(), 0, 20);
+        }
+        assertThat(feedBreaker().getState()).isEqualTo(CircuitBreaker.State.OPEN);
+
+        PROFILES.resetRequests();
+        assertThat(directory.findFeedCandidates(7, Set.of(), 0, 20).items()).isEmpty();
+        PROFILES.verify(0, getRequestedFor(urlPathEqualTo(FEED)));
+    }
+
+    @Test
+    @DisplayName("Ответы 404 — не сбой сервиса анкет: автомат остаётся замкнутым")
+    void clientErrorsDoNotOpenBreaker() {
+        PROFILES.stubFor(get(urlPathEqualTo(FEED)).willReturn(problem(404)));
+
+        for (int call = 0; call < 10; call++) {
+            assertThatThrownBy(() -> directory.findFeedCandidates(7, Set.of(), 0, 20))
+                    .isInstanceOf(NotFoundException.class);
+        }
+        assertThat(feedBreaker().getState()).isEqualTo(CircuitBreaker.State.CLOSED);
+    }
+
+    @Test
+    @DisplayName("Сервис анкет поднялся: после паузы автомат пропускает пробные запросы и замыкается")
+    void closesAgainWhenProfilesRecover() throws InterruptedException {
+        PROFILES.stubFor(get(urlPathEqualTo(FEED)).willReturn(problem(503)));
+        for (int call = 0; call < 5; call++) {
+            directory.findFeedCandidates(7, Set.of(), 0, 20);
+        }
+        assertThat(feedBreaker().getState()).isEqualTo(CircuitBreaker.State.OPEN);
+
+        PROFILES.stubFor(get(urlPathEqualTo(FEED)).willReturn(okJson(EMPTY_PAGE)));
+        Thread.sleep(1_500);
+        assertThat(feedBreaker().getState()).isEqualTo(CircuitBreaker.State.HALF_OPEN);
+
+        directory.findFeedCandidates(7, Set.of(), 0, 20);
+        directory.findFeedCandidates(7, Set.of(), 0, 20);
+        assertThat(feedBreaker().getState()).isEqualTo(CircuitBreaker.State.CLOSED);
+    }
+
+    private CircuitBreaker feedBreaker() {
+        return breakers.getAllCircuitBreakers().stream()
+                .filter(breaker -> breaker.getName().startsWith("ProfileClient"))
+                .findFirst()
+                .orElseThrow();
     }
 }

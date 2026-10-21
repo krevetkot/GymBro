@@ -26,3 +26,28 @@ logging:
   level:
     org.hibernate.SQL: ${SQL_LOG_LEVEL:INFO}
     liquibase: INFO
+
+# Circuit Breaker на Feign-клиентах (одинаково в catalog-, profile- и matching-service; в общий
+# application.yml не вынесено: его читает gateway, у которого нет классов Feign).
+# Автомат размыкается, если из последних 10 вызовов соседа (не меньше 5) половина — сбои;
+# через 10 секунд пропускает 2 пробных вызова. Ответы 4xx — не сбой соседа и автомат не размыкают.
+spring.cloud.openfeign.circuitbreaker.enabled: true
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+        ignore-exceptions:
+          - feign.FeignException$FeignClientException
+  timelimiter:
+    configs:
+      default:
+        # больше readTimeout Feign (3 с), чтобы медленный ответ обрывал Feign, а не таймер автомата
+        timeout-duration: 4s

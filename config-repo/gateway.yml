@@ -14,18 +14,38 @@ spring:
               uri: lb://identity-service
               predicates:
                 - Path=/api/v1/users,/api/v1/users/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: identity
+                    fallbackUri: forward:/fallback/identity
             - id: catalog-api
               uri: lb://catalog-service
               predicates:
                 - Path=/api/v1/sports,/api/v1/sports/**,/api/v1/gyms,/api/v1/gyms/**,/api/v1/gym-requests,/api/v1/gym-requests/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: catalog
+                    fallbackUri: forward:/fallback/catalog
             - id: profile-api
               uri: lb://profile-service
               predicates:
                 - Path=/api/v1/profiles,/api/v1/profiles/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: profile
+                    fallbackUri: forward:/fallback/profile
             - id: matching-api
               uri: lb://matching-service
               predicates:
                 - Path=/api/v1/feed,/api/v1/feed/**,/api/v1/likes,/api/v1/likes/**,/api/v1/matches,/api/v1/matches/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: matching
+                    fallbackUri: forward:/fallback/matching
             - id: identity-docs
               uri: lb://identity-service
               predicates:
@@ -50,6 +70,24 @@ spring:
                 - Path=/matching/v3/api-docs
               filters:
                 - StripPrefix=1
+
+# Свой автомат на каждый сервис: если сервис не отвечает или его нет в Eureka, gateway сразу
+# отдаёт 503 из /fallback/<сервис>, а не держит запросы до таймаута. Ответы самого сервиса
+# (в том числе его 4xx и 5xx) автомат пропускает как есть.
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+  timelimiter:
+    configs:
+      default:
+        timeout-duration: 10s
 
 # Общий Swagger: одна страница на gateway, документация каждого сервиса — через его маршрут.
 springdoc:

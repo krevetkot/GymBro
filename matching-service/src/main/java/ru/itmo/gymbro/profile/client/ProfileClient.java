@@ -7,7 +7,7 @@ import ru.itmo.gymbro.profile.api.FeedCandidates;
 
 import java.util.Set;
 
-@FeignClient(name = "profile-service")
+@FeignClient(name = "profile-service", fallbackFactory = ProfileClientFallback.class)
 public interface ProfileClient {
 
     @GetMapping("/internal/v1/profiles/feed")

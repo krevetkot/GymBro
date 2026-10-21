@@ -2,6 +2,8 @@ package ru.itmo.gymbro.identity.client;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +23,7 @@ import java.net.URI;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
@@ -64,8 +67,12 @@ class RemoteUserDirectoryTest extends AbstractIntegrationTest {
         IDENTITY.stop();
     }
 
+    @Autowired
+    private CircuitBreakerRegistry breakers;
+
     @BeforeEach
     void resetStubs() {
+        breakers.getAllCircuitBreakers().forEach(CircuitBreaker::reset);
         IDENTITY.resetAll();
     }
 
@@ -123,5 +130,20 @@ class RemoteUserDirectoryTest extends AbstractIntegrationTest {
         IDENTITY.stubFor(get(urlEqualTo("/internal/v1/users/7")).willReturn(aResponse().withStatus(200)));
 
         assertThatThrownBy(() -> directory.getSnapshot(7)).isInstanceOf(DependencyUnavailableException.class);
+    }
+
+    @Test
+    @DisplayName("После серии сбоев автомат размыкается: 503 сразу, без запроса к соседу")
+    void opensAfterFailuresAndStopsCalling() {
+        IDENTITY.stubFor(get(urlEqualTo("/internal/v1/users/7")).willReturn(problem(503)));
+        for (int call = 0; call < 5; call++) {
+            assertThatThrownBy(() -> directory.getSnapshot(7)).isInstanceOf(DependencyUnavailableException.class);
+        }
+
+        IDENTITY.resetRequests();
+        assertThatThrownBy(() -> directory.getSnapshot(7))
+                .isInstanceOf(DependencyUnavailableException.class)
+                .hasMessageContaining("запросы к нему приостановлены");
+        IDENTITY.verify(0, getRequestedFor(urlEqualTo("/internal/v1/users/7")));
     }
 }
