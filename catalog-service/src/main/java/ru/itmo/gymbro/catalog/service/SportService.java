@@ -3,7 +3,7 @@ package ru.itmo.gymbro.catalog.service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.catalog.api.SportUseCases;
 import ru.itmo.gymbro.catalog.model.Sport;
 import ru.itmo.gymbro.catalog.repository.SportRepository;
@@ -13,7 +13,6 @@ import ru.itmo.gymbro.shared.api.NotFoundException;
 import java.util.Set;
 
 @Service
-@Transactional(readOnly = true)
 class SportService implements SportUseCases {
 
     private final SportRepository sports;
@@ -23,31 +22,27 @@ class SportService implements SportUseCases {
     }
 
     @Override
-    @Transactional
-    public Sport create(String name) {
-        Sport candidate = Sport.of(name);
-        if (sports.existsByName(candidate.getName())) {
-            throw new ConflictException("Вид спорта с таким названием уже существует");
-        }
-        return sports.save(candidate);
+    public Mono<Sport> create(String name) {
+        return Mono.fromCallable(() -> Sport.of(name))
+                .flatMap(candidate -> sports.existsByName(candidate.getName())
+                        .flatMap(exists -> exists
+                                ? Mono.error(new ConflictException("Вид спорта с таким названием уже существует"))
+                                : sports.save(candidate)));
     }
 
     @Override
-    public Sport getById(long id) {
+    public Mono<Sport> getById(long id) {
         return sports.findById(id)
-                .orElseThrow(() -> new NotFoundException("Вид спорта " + id + " не найден"));
+                .switchIfEmpty(Mono.error(() -> new NotFoundException("Вид спорта " + id + " не найден")));
     }
 
     @Override
-    public Page<Sport> getPage(Pageable pageable) {
-        return sports.findAll(CatalogPagination.validate(pageable, Set.of("id", "name")));
+    public Mono<Page<Sport>> getPage(Pageable pageable) {
+        return CatalogPagination.page(pageable, Set.of("id", "name"), sports::findAllBy, sports.count());
     }
 
     @Override
-    @Transactional
-    public void delete(long id) {
-        getById(id);
-        sports.deleteById(id);
+    public Mono<Void> delete(long id) {
+        return getById(id).flatMap(sports::delete);
     }
 }
-

@@ -8,9 +8,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Flux;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.repository.GymRepository;
@@ -20,14 +19,6 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasSize;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class CatalogApiIntegrationTest extends AbstractIntegrationTest {
 
@@ -37,17 +28,12 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
     private static final String UPDATED_GYM = "{\"name\":\"Updated gym\",\"city\":\"Kazan\",\"address\":\"Street 2\"}";
 
     @Autowired
-    private WebApplicationContext context;
-
-    @Autowired
     private GymRepository gyms;
 
     private long adminId;
-    private MockMvc mvc;
 
     @BeforeEach
     void setUp() {
-        mvc = MockMvcBuilders.webAppContextSetup(context).build();
         adminId = testUsers.admin();
     }
 
@@ -58,160 +44,147 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void createsListsAndDeletesSport() throws Exception {
+    void createsListsAndDeletesSport() {
         long id = create(SPORTS, "{\"name\":\"Test sport\"}");
 
-        String page = mvc.perform(get(SPORTS).param("size", "50"))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+        String page = client.get().uri(SPORTS + "?size=50").exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class).returnResult().getResponseBody();
         List<Number> ids = JsonPath.read(page, "$[*].id");
         assertThat(ids).extracting(Number::longValue).contains(id);
 
-        mvc.perform(delete(SPORTS + "/" + id).header("X-User-Id", adminId)).andExpect(status().isNoContent());
-        mvc.perform(delete(SPORTS + "/" + id).header("X-User-Id", adminId)).andExpect(status().isNotFound());
+        delete(SPORTS + "/" + id).expectStatus().isNoContent();
+        delete(SPORTS + "/" + id).expectStatus().isNotFound();
     }
 
     @Test
-    void createsReadsUpdatesAndDeletesGym() throws Exception {
-        String location = mvc.perform(post(GYMS).header("X-User-Id", adminId)
-                        .contentType(MediaType.APPLICATION_JSON).content(GYM))
-                .andExpect(status().isCreated())
-                .andExpect(header().string("Location", containsString(GYMS + "/")))
-                .andReturn().getResponse().getHeader("Location");
-        mvc.perform(get(location))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").isNumber());
+    void createsReadsUpdatesAndDeletesGym() {
+        String location = write(client.post(), GYMS, GYM)
+                .expectStatus().isCreated()
+                .expectHeader().value("Location", value -> assertThat(value).contains(GYMS + "/"))
+                .returnResult(String.class).getResponseHeaders().getFirst("Location");
+        client.get().uri(location).exchange()
+                .expectStatus().isOk()
+                .expectBody().jsonPath("$.id").isNumber();
 
-        mvc.perform(put(location).header("X-User-Id", adminId)
-                        .contentType(MediaType.APPLICATION_JSON).content(UPDATED_GYM))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Updated gym"));
-        mvc.perform(get(location))
-                .andExpect(jsonPath("$.name").value("Updated gym"))
-                .andExpect(jsonPath("$.city").value("Kazan"))
-                .andExpect(jsonPath("$.address").value("Street 2"));
+        write(client.put(), location, UPDATED_GYM)
+                .expectStatus().isOk()
+                .expectBody().jsonPath("$.name").isEqualTo("Updated gym");
+        client.get().uri(location).exchange()
+                .expectBody()
+                .jsonPath("$.name").isEqualTo("Updated gym")
+                .jsonPath("$.city").isEqualTo("Kazan")
+                .jsonPath("$.address").isEqualTo("Street 2");
 
-        mvc.perform(put(location).header("X-User-Id", adminId)
-                        .contentType(MediaType.APPLICATION_JSON).content(UPDATED_GYM))
-                .andExpect(status().isOk());
+        write(client.put(), location, UPDATED_GYM).expectStatus().isOk();
 
-        mvc.perform(delete(location).header("X-User-Id", adminId)).andExpect(status().isNoContent());
-        mvc.perform(get(location)).andExpect(status().isNotFound());
-        mvc.perform(delete(location).header("X-User-Id", adminId)).andExpect(status().isNotFound());
+        delete(location).expectStatus().isNoContent();
+        client.get().uri(location).exchange().expectStatus().isNotFound();
+        delete(location).expectStatus().isNotFound();
     }
 
     @ParameterizedTest
     @MethodSource("catalogs")
-    void rejectsDuplicateCreation(String path, String body) throws Exception {
+    void rejectsDuplicateCreation(String path, String body) {
         create(path, body);
-        mvc.perform(post(path).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").isNotEmpty());
+        write(client.post(), path, body)
+                .expectStatus().isEqualTo(409)
+                .expectBody().jsonPath("$.detail").isNotEmpty();
     }
 
     @Test
-    void rejectsGymUpdateToAnotherRecordsUniqueFields() throws Exception {
+    void rejectsGymUpdateToAnotherRecordsUniqueFields() {
         long id = create(GYMS, GYM);
         create(GYMS, UPDATED_GYM);
-        mvc.perform(put(GYMS + "/" + id).header("X-User-Id", adminId)
-                        .contentType(MediaType.APPLICATION_JSON).content(UPDATED_GYM))
-                .andExpect(status().isConflict());
-        mvc.perform(get(GYMS + "/" + id)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Test gym"));
+        write(client.put(), GYMS + "/" + id, UPDATED_GYM).expectStatus().isEqualTo(409);
+        client.get().uri(GYMS + "/" + id).exchange()
+                .expectStatus().isOk()
+                .expectBody().jsonPath("$.name").isEqualTo("Test gym");
     }
 
     @ParameterizedTest
     @MethodSource("catalogs")
-    void rejectsInvalidAndMalformedBodies(String path, String body) throws Exception {
-        mvc.perform(post(path).header("X-User-Id", adminId)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\" \"}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors").isArray());
-        mvc.perform(post(path).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON).content("{"))
-                .andExpect(status().isBadRequest());
-        mvc.perform(post(path).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON)
-                        .content(body.replace("Test", "x".repeat(301))))
-                .andExpect(status().isBadRequest());
+    void rejectsInvalidAndMalformedBodies(String path, String body) {
+        write(client.post(), path, "{\"name\":\" \"}")
+                .expectStatus().isBadRequest()
+                .expectBody().jsonPath("$.errors").isArray();
+        write(client.post(), path, "{").expectStatus().isBadRequest();
+        write(client.post(), path, body.replace("Test", "x".repeat(301))).expectStatus().isBadRequest();
     }
 
     @Test
-    void rejectsInvalidGymUpdate() throws Exception {
+    void rejectsInvalidGymUpdate() {
         long id = create(GYMS, GYM);
-        mvc.perform(put(GYMS + "/" + id).header("X-User-Id", adminId)
-                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isBadRequest());
+        write(client.put(), GYMS + "/" + id, "{}").expectStatus().isBadRequest();
     }
 
     @ParameterizedTest
     @MethodSource("catalogs")
-    void handlesMissingRecordsAndInvalidParameters(String path, String body) throws Exception {
-        mvc.perform(delete(path + "/9223372036854775807").header("X-User-Id", adminId))
-                .andExpect(status().isNotFound());
-        mvc.perform(delete(path + "/-1").header("X-User-Id", adminId)).andExpect(status().isBadRequest());
-        mvc.perform(delete(path + "/abc").header("X-User-Id", adminId)).andExpect(status().isBadRequest());
-        mvc.perform(get(path).param("sort", "unknown,asc"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail", containsString("unknown")));
+    void handlesMissingRecordsAndInvalidParameters(String path, String body) {
+        delete(path + "/9223372036854775807").expectStatus().isNotFound();
+        delete(path + "/-1").expectStatus().isBadRequest();
+        delete(path + "/abc").expectStatus().isBadRequest();
+        client.get().uri(path + "?sort=unknown,asc").exchange()
+                .expectStatus().isBadRequest()
+                .expectBody().jsonPath("$.detail").value(containsString("unknown"));
     }
 
     @Test
-    void handlesMissingGymOnReadAndUpdate() throws Exception {
+    void handlesMissingGymOnReadAndUpdate() {
         String missing = GYMS + "/9223372036854775807";
-        mvc.perform(get(missing)).andExpect(status().isNotFound());
-        mvc.perform(put(missing).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON).content(GYM))
-                .andExpect(status().isNotFound());
-        mvc.perform(get(GYMS + "/-1")).andExpect(status().isBadRequest());
-        mvc.perform(get(GYMS + "/abc")).andExpect(status().isBadRequest());
+        client.get().uri(missing).exchange().expectStatus().isNotFound();
+        write(client.put(), missing, GYM).expectStatus().isNotFound();
+        client.get().uri(GYMS + "/-1").exchange().expectStatus().isBadRequest();
+        client.get().uri(GYMS + "/abc").exchange().expectStatus().isBadRequest();
     }
 
     @Test
-    void paginatesGymsWithTotalCountAndCapsSize() throws Exception {
-        for (int i = 0; i < 55; i++) {
-            gyms.save(Gym.of("Same name", "Test city", "Address " + i));
-        }
-        mvc.perform(get(GYMS))
-                .andExpect(status().isOk())
-                .andExpect(header().string("X-Total-Count", "55"))
-                .andExpect(jsonPath("$", hasSize(20)));
-        mvc.perform(get(GYMS).param("size", "1000").param("sort", "name,asc"))
-                .andExpect(status().isOk())
-                .andExpect(header().string("X-Total-Count", "55"))
-                .andExpect(jsonPath("$", hasSize(50)));
-        mvc.perform(get(GYMS).param("size", "50").param("page", "1"))
-                .andExpect(status().isOk())
-                .andExpect(header().string("X-Total-Count", "55"))
-                .andExpect(jsonPath("$", hasSize(5)));
-        mvc.perform(get(GYMS).param("page", "100"))
-                .andExpect(status().isOk())
-                .andExpect(header().string("X-Total-Count", "55"))
-                .andExpect(jsonPath("$", hasSize(0)));
+    void paginatesGymsWithTotalCountAndCapsSize() {
+        gyms.saveAll(Flux.range(0, 55).map(i -> Gym.of("Same name", "Test city", "Address " + i))).blockLast();
+
+        expectPage(GYMS, 20);
+        expectPage(GYMS + "?size=1000&sort=name,asc", 50);
+        expectPage(GYMS + "?size=50&page=1", 5);
+        expectPage(GYMS + "?page=100", 0);
     }
 
     @Test
-    void listsSeededSportsWithTotalCount() throws Exception {
-        mvc.perform(get(SPORTS).param("size", "3"))
-                .andExpect(status().isOk())
-                .andExpect(header().string("X-Total-Count", "10"))
-                .andExpect(jsonPath("$", hasSize(3)));
+    void listsSeededSportsWithTotalCount() {
+        client.get().uri(SPORTS + "?size=3").exchange()
+                .expectStatus().isOk()
+                .expectHeader().valueEquals("X-Total-Count", "10")
+                .expectBody().jsonPath("$.length()").isEqualTo(3);
     }
 
     @Test
-    void normalizesWhitespaceBeforeCheckingDuplicates() throws Exception {
+    void normalizesWhitespaceBeforeCheckingDuplicates() {
         create(SPORTS, "{\"name\":\"  New sport  \"}");
-        mvc.perform(post(SPORTS).contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"New sport\"}"))
-                .andExpect(status().isConflict());
+        write(client.post(), SPORTS, "{\"name\":\"New sport\"}").expectStatus().isEqualTo(409);
         create(GYMS, "{\"name\":\" Gym \",\"city\":\" City \",\"address\":\" Address \"}");
-        mvc.perform(post(GYMS).header("X-User-Id", adminId).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Another gym\",\"city\":\"City\",\"address\":\"Address\"}"))
-                .andExpect(status().isConflict());
+        write(client.post(), GYMS, "{\"name\":\"Another gym\",\"city\":\"City\",\"address\":\"Address\"}")
+                .expectStatus().isEqualTo(409);
     }
 
-    private long create(String path, String body) throws Exception {
-        String json = mvc.perform(post(path).header("X-User-Id", adminId)
-                        .contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").isNumber())
-                .andReturn().getResponse().getContentAsString();
+    private void expectPage(String uri, int size) {
+        client.get().uri(uri).exchange()
+                .expectStatus().isOk()
+                .expectHeader().valueEquals("X-Total-Count", "55")
+                .expectBody().jsonPath("$.length()").isEqualTo(size);
+    }
+
+    private WebTestClient.ResponseSpec write(WebTestClient.RequestBodyUriSpec method, String uri, String body) {
+        return method.uri(uri).header("X-User-Id", String.valueOf(adminId))
+                .contentType(MediaType.APPLICATION_JSON).bodyValue(body).exchange();
+    }
+
+    private WebTestClient.ResponseSpec delete(String uri) {
+        return client.delete().uri(uri).header("X-User-Id", String.valueOf(adminId)).exchange();
+    }
+
+    private long create(String path, String body) {
+        String json = write(client.post(), path, body)
+                .expectStatus().isCreated()
+                .expectBody(String.class).returnResult().getResponseBody();
         return ((Number) JsonPath.read(json, "$.id")).longValue();
     }
 }

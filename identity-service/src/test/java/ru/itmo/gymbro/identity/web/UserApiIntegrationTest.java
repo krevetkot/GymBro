@@ -1,18 +1,13 @@
 package ru.itmo.gymbro.identity.web;
 
 import com.jayway.jsonpath.JsonPath;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.identity.model.User;
 import ru.itmo.gymbro.identity.repository.UserRepository;
@@ -21,47 +16,29 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.startsWith;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class UserApiIntegrationTest extends AbstractIntegrationTest {
 
     private static final String USERS = "/api/v1/users";
 
     @Autowired
-    private WebApplicationContext context;
-
-    @Autowired
     private UserRepository users;
-
-    private MockMvc mvc;
-
-    @BeforeEach
-    void setUpMvc() {
-        mvc = MockMvcBuilders.webAppContextSetup(context).build();
-    }
 
     @Test
     @DisplayName("Регистрация возвращает 201, адрес пользователя и тело без пароля")
-    void registersUser() throws Exception {
+    void registersUser() {
         register("Anna@Mail.ru", "secret-password")
-                .andExpect(status().isCreated())
-                .andExpect(header().string("Location", matchesPattern("/api/v1/users/\\d+")))
-                .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.email").value("anna@mail.ru"))
-                .andExpect(jsonPath("$.role").value("USER"))
-                .andExpect(jsonPath("$.status").value("ACTIVE"))
-                .andExpect(jsonPath("$.createdAt").isNotEmpty())
-                .andExpect(jsonPath("$.password").doesNotExist());
+                .expectStatus().isCreated()
+                .expectHeader().value("Location", matchesPattern("/api/v1/users/\\d+"))
+                .expectBody()
+                .jsonPath("$.id").isNumber()
+                .jsonPath("$.email").isEqualTo("anna@mail.ru")
+                .jsonPath("$.role").isEqualTo("USER")
+                .jsonPath("$.status").isEqualTo("ACTIVE")
+                .jsonPath("$.createdAt").isNotEmpty()
+                .jsonPath("$.password").doesNotExist();
 
         User stored = users.findByEmail("anna@mail.ru").orElseThrow();
         assertThat(stored.getPassword()).isEqualTo("secret-password");
@@ -69,98 +46,97 @@ class UserApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     @DisplayName("Зарегистрированный пользователь читается по адресу из Location")
-    void readsRegisteredUser() throws Exception {
+    void readsRegisteredUser() {
         String location = registeredLocation("reader@mail.ru");
 
-        mvc.perform(get(location))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("reader@mail.ru"))
-                .andExpect(jsonPath("$.password").doesNotExist());
+        client.get().uri(location).exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.email").isEqualTo("reader@mail.ru")
+                .jsonPath("$.password").doesNotExist();
     }
 
     @Test
     @DisplayName("Повторная регистрация на занятый email — 409 без учёта регистра")
-    void rejectsDuplicateEmail() throws Exception {
+    void rejectsDuplicateEmail() {
         registeredLocation("twin@mail.ru");
 
         register("TWIN@mail.ru", "another-password")
-                .andExpect(status().isConflict())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.detail").isNotEmpty());
+                .expectStatus().isEqualTo(409)
+                .expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON)
+                .expectBody().jsonPath("$.detail").isNotEmpty();
     }
 
     @Test
     @DisplayName("Невалидное тело регистрации — 400 со списком всех неверных полей")
-    void rejectsInvalidRegistration() throws Exception {
+    void rejectsInvalidRegistration() {
         register("not-an-email", "short")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors[*].field", containsInAnyOrder("email", "password")));
+                .expectStatus().isBadRequest()
+                .expectBody().jsonPath("$.errors[*].field").value(containsInAnyOrder("email", "password"));
 
         assertThat(users.existsByEmail("not-an-email")).isFalse();
     }
 
     @Test
     @DisplayName("Регистрация без обязательных полей — 400")
-    void rejectsEmptyRegistration() throws Exception {
-        mvc.perform(post(USERS).contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors[*].field", containsInAnyOrder("email", "password")));
+    void rejectsEmptyRegistration() {
+        post("{}")
+                .expectStatus().isBadRequest()
+                .expectBody().jsonPath("$.errors[*].field").value(containsInAnyOrder("email", "password"));
     }
 
     @Test
     @DisplayName("Нечитаемый JSON — 400")
-    void rejectsMalformedJson() throws Exception {
-        mvc.perform(post(USERS).contentType(MediaType.APPLICATION_JSON).content("{\"email\":"))
-                .andExpect(status().isBadRequest());
+    void rejectsMalformedJson() {
+        post("{\"email\":").expectStatus().isBadRequest();
     }
 
     @Test
     @DisplayName("Несуществующий пользователь — 404")
-    void returnsNotFoundForUnknownUser() throws Exception {
-        mvc.perform(get(USERS + "/" + Long.MAX_VALUE))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.detail").isNotEmpty());
+    void returnsNotFoundForUnknownUser() {
+        client.get().uri(USERS + "/" + Long.MAX_VALUE).exchange()
+                .expectStatus().isNotFound()
+                .expectBody().jsonPath("$.detail").isNotEmpty();
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"abc", "0", "-1"})
     @DisplayName("Идентификатор в пути не положительное число — 400")
-    void rejectsInvalidIdentifier(String id) throws Exception {
-        mvc.perform(get(USERS + "/" + id)).andExpect(status().isBadRequest());
+    void rejectsInvalidIdentifier(String id) {
+        client.get().uri(USERS + "/" + id).exchange().expectStatus().isBadRequest();
     }
 
     @Test
     @DisplayName("Список отдаётся страницами, общее количество — в X-Total-Count")
-    void pagesUsersWithTotalCount() throws Exception {
-        long before = users.findAll(PageRequest.of(0, 1)).getTotalElements();
+    void pagesUsersWithTotalCount() {
+        long before = users.count();
         saveUsers("paged", 3);
 
-        mvc.perform(get(USERS).param("page", "0").param("size", "2"))
-                .andExpect(status().isOk())
-                .andExpect(header().string("X-Total-Count", String.valueOf(before + 3)))
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].password").doesNotExist());
+        client.get().uri(USERS + "?page=0&size=2").exchange()
+                .expectStatus().isOk()
+                .expectHeader().valueEquals("X-Total-Count", String.valueOf(before + 3))
+                .expectBody()
+                .jsonPath("$.length()").isEqualTo(2)
+                .jsonPath("$[0].password").doesNotExist();
     }
 
     @Test
     @DisplayName("Больше 50 записей за запрос не отдаётся")
-    void capsPageSizeAtFifty() throws Exception {
+    void capsPageSizeAtFifty() {
         saveUsers("bulk", 51);
 
-        mvc.perform(get(USERS).param("size", "1000"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(50)));
+        client.get().uri(USERS + "?size=1000").exchange()
+                .expectStatus().isOk()
+                .expectBody().jsonPath("$.length()").isEqualTo(50);
     }
 
     @Test
     @DisplayName("Страницы идут по возрастанию id и не пересекаются, сортировка из запроса игнорируется")
-    void ordersPagesById() throws Exception {
+    void ordersPagesById() {
         saveUsers("ordered", 4);
 
-        List<Integer> first = ids(mvc.perform(get(USERS).param("page", "0").param("size", "2")
-                .param("sort", "password,desc")));
-        List<Integer> second = ids(mvc.perform(get(USERS).param("page", "1").param("size", "2")
-                .param("sort", "unknown")));
+        List<Integer> first = ids(USERS + "?page=0&size=2&sort=password,desc");
+        List<Integer> second = ids(USERS + "?page=1&size=2&sort=unknown");
 
         assertThat(first).isSorted();
         assertThat(second).isSorted();
@@ -169,13 +145,12 @@ class UserApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     @DisplayName("PATCH меняет только переданные поля")
-    void updatesEmail() throws Exception {
+    void updatesEmail() {
         String location = registeredLocation("old@mail.ru");
 
-        mvc.perform(patch(location).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"New@Mail.ru\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("new@mail.ru"));
+        patch(location, "{\"email\":\"New@Mail.ru\"}")
+                .expectStatus().isOk()
+                .expectBody().jsonPath("$.email").isEqualTo("new@mail.ru");
 
         assertThat(users.existsByEmail("old@mail.ru")).isFalse();
         assertThat(users.existsByEmail("new@mail.ru")).isTrue();
@@ -183,66 +158,69 @@ class UserApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     @DisplayName("PATCH пароля сохраняет новый пароль")
-    void updatesPassword() throws Exception {
+    void updatesPassword() {
         String location = registeredLocation("secure@mail.ru");
-        mvc.perform(patch(location).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"password\":\"brand-new-password\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("secure@mail.ru"));
+
+        patch(location, "{\"password\":\"brand-new-password\"}")
+                .expectStatus().isOk()
+                .expectBody().jsonPath("$.email").isEqualTo("secure@mail.ru");
 
         assertThat(users.findByEmail("secure@mail.ru").orElseThrow().getPassword()).isEqualTo("brand-new-password");
     }
 
     @Test
     @DisplayName("PATCH на email другого пользователя — 409")
-    void rejectsTakenEmailOnUpdate() throws Exception {
+    void rejectsTakenEmailOnUpdate() {
         registeredLocation("taken@mail.ru");
         String location = registeredLocation("mover@mail.ru");
 
-        mvc.perform(patch(location).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"taken@mail.ru\"}"))
-                .andExpect(status().isConflict());
+        patch(location, "{\"email\":\"taken@mail.ru\"}").expectStatus().isEqualTo(409);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"{\"email\":\"broken\"}", "{\"password\":\"short\"}", "{\"password\":\"          \"}"})
     @DisplayName("PATCH с невалидными полями — 400")
-    void rejectsInvalidUpdate(String body) throws Exception {
+    void rejectsInvalidUpdate(String body) {
         String location = registeredLocation("patched@mail.ru");
 
-        mvc.perform(patch(location).contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors").isArray());
+        patch(location, body)
+                .expectStatus().isBadRequest()
+                .expectBody().jsonPath("$.errors").isArray();
     }
 
     @Test
     @DisplayName("PATCH несуществующего пользователя — 404")
-    void rejectsUpdateOfUnknownUser() throws Exception {
-        mvc.perform(patch(USERS + "/" + Long.MAX_VALUE).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"ghost@mail.ru\"}"))
-                .andExpect(status().isNotFound());
+    void rejectsUpdateOfUnknownUser() {
+        patch(USERS + "/" + Long.MAX_VALUE, "{\"email\":\"ghost@mail.ru\"}").expectStatus().isNotFound();
     }
 
     @Test
     @DisplayName("Удаление — 204, после него пользователь не найден, повторное удаление — 404")
-    void deletesUser() throws Exception {
+    void deletesUser() {
         String location = registeredLocation("gone@mail.ru");
 
-        mvc.perform(delete(location)).andExpect(status().isNoContent());
-        mvc.perform(get(location)).andExpect(status().isNotFound());
-        mvc.perform(delete(location)).andExpect(status().isNotFound());
+        client.delete().uri(location).exchange().expectStatus().isNoContent();
+        client.get().uri(location).exchange().expectStatus().isNotFound();
+        client.delete().uri(location).exchange().expectStatus().isNotFound();
     }
 
-    private ResultActions register(String email, String password) throws Exception {
-        return mvc.perform(post(USERS).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"email\":\"%s\",\"password\":\"%s\"}".formatted(email, password)));
+    private WebTestClient.ResponseSpec register(String email, String password) {
+        return post("{\"email\":\"%s\",\"password\":\"%s\"}".formatted(email, password));
     }
 
-    private String registeredLocation(String email) throws Exception {
+    private WebTestClient.ResponseSpec post(String body) {
+        return client.post().uri(USERS).contentType(MediaType.APPLICATION_JSON).bodyValue(body).exchange();
+    }
+
+    private WebTestClient.ResponseSpec patch(String location, String body) {
+        return client.patch().uri(location).contentType(MediaType.APPLICATION_JSON).bodyValue(body).exchange();
+    }
+
+    private String registeredLocation(String email) {
         return register(email, "secret-password")
-                .andExpect(status().isCreated())
-                .andExpect(header().string("Location", startsWith(USERS)))
-                .andReturn().getResponse().getHeader("Location");
+                .expectStatus().isCreated()
+                .expectHeader().value("Location", startsWith(USERS))
+                .returnResult(String.class).getResponseHeaders().getFirst("Location");
     }
 
     private void saveUsers(String prefix, int count) {
@@ -251,8 +229,10 @@ class UserApiIntegrationTest extends AbstractIntegrationTest {
         }
     }
 
-    private static List<Integer> ids(ResultActions result) throws Exception {
-        String json = result.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+    private List<Integer> ids(String uri) {
+        String json = client.get().uri(uri).exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class).returnResult().getResponseBody();
         return JsonPath.read(json, "$[*].id");
     }
 }

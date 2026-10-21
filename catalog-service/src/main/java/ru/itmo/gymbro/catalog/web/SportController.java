@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.catalog.api.SportUseCases;
 import ru.itmo.gymbro.catalog.dto.SportResponse;
 import ru.itmo.gymbro.catalog.dto.SportWriteRequest;
@@ -46,8 +47,8 @@ class SportController {
     @Operation(summary = "Создать вид спорта")
     @ApiResponse(responseCode = "201", description = "Вид спорта создан")
     @ApiResponse(responseCode = "409", description = "Такой вид спорта уже существует")
-    SportResponse create(@Valid @RequestBody SportWriteRequest request) {
-        return SportResponse.from(sports.create(request.name()));
+    Mono<SportResponse> create(@Valid @RequestBody SportWriteRequest request) {
+        return sports.create(request.name()).map(SportResponse::from);
     }
 
     @GetMapping
@@ -57,9 +58,9 @@ class SportController {
     @ApiResponse(responseCode = "200", description = "Страница видов спорта",
             headers = @Header(name = "X-Total-Count", description = "Общее количество записей",
                     schema = @Schema(type = "integer", format = "int64")))
-    ResponseEntity<List<SportResponse>> getPage(
+    Mono<ResponseEntity<List<SportResponse>>> getPage(
             @ParameterObject @PageableDefault(size = 20, sort = "id") Pageable pageable) {
-        return PageResponses.withTotalCount(sports.getPage(pageable).map(SportResponse::from));
+        return sports.getPage(pageable).map(page -> PageResponses.withTotalCount(page.map(SportResponse::from)));
     }
 
     @DeleteMapping("/{id}")
@@ -67,8 +68,7 @@ class SportController {
     @ApiResponse(responseCode = "204", description = "Вид спорта удалён")
     @ApiResponse(responseCode = "404", description = "Вид спорта не найден")
     @ApiResponse(responseCode = "409", description = "Вид спорта указан в анкетах")
-    ResponseEntity<Void> delete(@PathVariable @Positive long id) {
-        sports.delete(id);
-        return ResponseEntity.noContent().build();
+    Mono<ResponseEntity<Void>> delete(@PathVariable @Positive long id) {
+        return sports.delete(id).thenReturn(ResponseEntity.noContent().build());
     }
 }

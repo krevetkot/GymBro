@@ -134,6 +134,7 @@ services:
     environment:
       <<: *cloud-env
       CATALOG_DB_URL: jdbc:postgresql://catalog-db:5432/${CATALOG_DB_NAME:-gymbro_catalog}
+      CATALOG_R2DBC_URL: r2dbc:postgresql://catalog-db:5432/${CATALOG_DB_NAME:-gymbro_catalog}
       CATALOG_DB_USER: ${CATALOG_DB_USER:-gymbro_catalog}
       CATALOG_DB_PASSWORD: ${CATALOG_DB_PASSWORD:-gymbro_catalog}
     healthcheck:

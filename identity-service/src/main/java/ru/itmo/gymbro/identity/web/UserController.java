@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.identity.api.UserUseCases;
 import ru.itmo.gymbro.identity.dto.RegisterUserRequest;
 import ru.itmo.gymbro.identity.dto.UpdateUserRequest;
@@ -46,17 +47,18 @@ class UserController {
             description = "Создаёт активного пользователя с ролью USER.")
     @ApiResponse(responseCode = "201", description = "Пользователь создан; Location содержит адрес записи")
     @ApiResponse(responseCode = "409", description = "Email уже занят")
-    ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterUserRequest request) {
-        UserResponse response = UserResponse.from(users.register(request.getEmail(), request.getPassword()));
-        return ResponseEntity.created(URI.create("/api/v1/users/" + response.getId())).body(response);
+    Mono<ResponseEntity<UserResponse>> register(@Valid @RequestBody RegisterUserRequest request) {
+        return users.register(request.getEmail(), request.getPassword())
+                .map(UserResponse::from)
+                .map(response -> ResponseEntity.created(URI.create("/api/v1/users/" + response.getId())).body(response));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Получить пользователя")
     @ApiResponse(responseCode = "200", description = "Пользователь найден")
     @ApiResponse(responseCode = "404", description = "Пользователь не найден")
-    UserResponse getById(@PathVariable @Positive long id) {
-        return UserResponse.from(users.getById(id));
+    Mono<UserResponse> getById(@PathVariable @Positive long id) {
+        return users.getById(id).map(UserResponse::from);
     }
 
     @GetMapping
@@ -65,8 +67,8 @@ class UserController {
     @ApiResponse(responseCode = "200", description = "Страница пользователей",
             headers = @Header(name = "X-Total-Count", description = "Общее количество пользователей",
                     schema = @Schema(type = "integer", format = "int64")))
-    ResponseEntity<List<UserResponse>> getPage(@ParameterObject Pageable pageable) {
-        return PageResponses.withTotalCount(users.getPage(pageable).map(UserResponse::from));
+    Mono<ResponseEntity<List<UserResponse>>> getPage(@ParameterObject Pageable pageable) {
+        return users.getPage(pageable).map(page -> PageResponses.withTotalCount(page.map(UserResponse::from)));
     }
 
     @PatchMapping("/{id}")
@@ -76,8 +78,8 @@ class UserController {
     @ApiResponse(responseCode = "200", description = "Пользователь обновлён")
     @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     @ApiResponse(responseCode = "409", description = "Email уже занят")
-    UserResponse update(@PathVariable @Positive long id, @Valid @RequestBody UpdateUserRequest request) {
-        return UserResponse.from(users.update(id, request.getEmail(), request.getPassword()));
+    Mono<UserResponse> update(@PathVariable @Positive long id, @Valid @RequestBody UpdateUserRequest request) {
+        return users.update(id, request.getEmail(), request.getPassword()).map(UserResponse::from);
     }
 
     @DeleteMapping("/{id}")
@@ -88,8 +90,7 @@ class UserController {
     @ApiResponse(responseCode = "204", description = "Пользователь удалён")
     @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     @ApiResponse(responseCode = "409", description = "Удалению препятствуют связанные данные")
-    ResponseEntity<Void> delete(@PathVariable @Positive long id) {
-        users.delete(id);
-        return ResponseEntity.noContent().build();
+    Mono<ResponseEntity<Void>> delete(@PathVariable @Positive long id) {
+        return users.delete(id).thenReturn(ResponseEntity.noContent().build());
     }
 }

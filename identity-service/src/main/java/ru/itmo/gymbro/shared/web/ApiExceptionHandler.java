@@ -1,21 +1,24 @@
 package ru.itmo.gymbro.shared.web;
 
 import jakarta.validation.ConstraintViolationException;
-import org.springframework.beans.TypeMismatchException;
+import org.springframework.core.MethodParameter;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.springframework.web.reactive.result.method.annotation.ResponseEntityExceptionHandler;
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.ServerWebInputException;
+import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.shared.api.ConflictException;
+import ru.itmo.gymbro.shared.api.DependencyUnavailableException;
 import ru.itmo.gymbro.shared.api.ForbiddenException;
 import ru.itmo.gymbro.shared.api.NotFoundException;
 import ru.itmo.gymbro.shared.api.UnauthorizedException;
@@ -23,10 +26,16 @@ import ru.itmo.gymbro.shared.dto.FieldViolation;
 
 import java.util.List;
 
+/** Ошибки WebFlux-контроллеров в формате ProblemDetail, с теми же текстами, что и в MVC-сервисах. */
 @RestControllerAdvice
 class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final String INVALID_REQUEST = "Некорректный запрос";
+
+    @ExceptionHandler(DependencyUnavailableException.class)
+    ProblemDetail handleDependencyUnavailable(DependencyUnavailableException exception) {
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, "Сервис недоступен", exception.getMessage());
+    }
 
     @ExceptionHandler(NotFoundException.class)
     ProblemDetail handleNotFound(NotFoundException exception) {
@@ -81,43 +90,37 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @Override
-    protected ResponseEntity<Object> handleMethodArgumentNotValid(
-            MethodArgumentNotValidException exception, HttpHeaders headers,
-            HttpStatusCode status, WebRequest request) {
+    protected Mono<ResponseEntity<Object>> handleWebExchangeBindException(
+            WebExchangeBindException exception, HttpHeaders headers,
+            HttpStatusCode status, ServerWebExchange exchange) {
         List<FieldViolation> violations = exception.getBindingResult().getFieldErrors().stream()
                 .map(error -> new FieldViolation(error.getField(), error.getDefaultMessage()))
                 .toList();
-        return handleExceptionInternal(exception, invalidFields(status, violations), headers, status, request);
+        return handleExceptionInternal(exception, invalidFields(status, violations), headers, status, exchange);
     }
 
     @Override
-    protected ResponseEntity<Object> handleHandlerMethodValidationException(
+    protected Mono<ResponseEntity<Object>> handleHandlerMethodValidationException(
             HandlerMethodValidationException exception, HttpHeaders headers,
-            HttpStatusCode status, WebRequest request) {
+            HttpStatusCode status, ServerWebExchange exchange) {
         List<FieldViolation> violations = exception.getParameterValidationResults().stream()
                 .flatMap(result -> result.getResolvableErrors().stream()
                         .map(error -> new FieldViolation(
                                 result.getMethodParameter().getParameterName(), error.getDefaultMessage())))
                 .toList();
-        return handleExceptionInternal(exception, invalidFields(status, violations), headers, status, request);
+        return handleExceptionInternal(exception, invalidFields(status, violations), headers, status, exchange);
     }
 
+    /** Битый JSON, неверный тип поля, параметра или переменной пути. */
     @Override
-    protected ResponseEntity<Object> handleHttpMessageNotReadable(
-            HttpMessageNotReadableException exception, HttpHeaders headers,
-            HttpStatusCode status, WebRequest request) {
-        ProblemDetail body = problem(status, INVALID_REQUEST,
-                "Тело запроса не удалось прочитать: проверьте формат JSON и типы полей");
-        return handleExceptionInternal(exception, body, headers, status, request);
-    }
-
-    @Override
-    protected ResponseEntity<Object> handleTypeMismatch(
-            TypeMismatchException exception, HttpHeaders headers,
-            HttpStatusCode status, WebRequest request) {
-        ProblemDetail body = problem(status, INVALID_REQUEST,
-                "Параметр '%s' имеет неверный формат".formatted(exception.getPropertyName()));
-        return handleExceptionInternal(exception, body, headers, status, request);
+    protected Mono<ResponseEntity<Object>> handleServerWebInputException(
+            ServerWebInputException exception, HttpHeaders headers,
+            HttpStatusCode status, ServerWebExchange exchange) {
+        MethodParameter parameter = exception.getMethodParameter();
+        String detail = parameter != null && !parameter.hasParameterAnnotation(RequestBody.class)
+                ? "Параметр '%s' имеет неверный формат".formatted(parameter.getParameterName())
+                : "Тело запроса не удалось прочитать: проверьте формат JSON и типы полей";
+        return handleExceptionInternal(exception, problem(status, INVALID_REQUEST, detail), headers, status, exchange);
     }
 
     private static ProblemDetail invalidFields(HttpStatusCode status, List<FieldViolation> violations) {

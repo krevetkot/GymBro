@@ -1,9 +1,11 @@
 package ru.itmo.gymbro.catalog.api;
 
+import reactor.core.publisher.Mono;
+
 /** Read-only contract for other domains; never exposes persistence entities. */
 public interface CatalogDirectory {
 
-    SportSnapshot getSport(long id);
+    Mono<SportSnapshot> getSport(long id);
 
-    GymSnapshot getGym(long id);
+    Mono<GymSnapshot> getGym(long id);
 }

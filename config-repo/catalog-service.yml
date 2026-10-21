@@ -1,19 +1,19 @@
 spring:
 
-  datasource:
-    url: ${CATALOG_DB_URL:jdbc:postgresql://localhost:5435/gymbro_catalog}
+  # Приложение ходит в базу через R2DBC (неблокирующий драйвер)
+  r2dbc:
+    url: ${CATALOG_R2DBC_URL:r2dbc:postgresql://localhost:5435/gymbro_catalog}
     username: ${CATALOG_DB_USER:gymbro_catalog}
     password: ${CATALOG_DB_PASSWORD:gymbro_catalog}
-    hikari:
-      maximum-pool-size: ${CATALOG_DB_POOL_SIZE:10}
+    pool:
+      max-size: ${CATALOG_DB_POOL_SIZE:10}
 
+  # Liquibase умеет только JDBC: миграции идут отдельным подключением при старте
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
-
-  jpa:
-    open-in-view: false
-    hibernate:
-      ddl-auto: validate
+    url: ${CATALOG_DB_URL:jdbc:postgresql://localhost:5435/gymbro_catalog}
+    user: ${CATALOG_DB_USER:gymbro_catalog}
+    password: ${CATALOG_DB_PASSWORD:gymbro_catalog}
 
 server:
   port: ${CATALOG_PORT:8083}
@@ -24,7 +24,7 @@ springdoc:
 
 logging:
   level:
-    org.hibernate.SQL: ${SQL_LOG_LEVEL:INFO}
+    org.springframework.r2dbc.core: ${SQL_LOG_LEVEL:INFO}
     liquibase: INFO
 
 # Circuit Breaker на Feign-клиентах (одинаково в catalog-, profile- и matching-service; в общий

@@ -1,10 +1,12 @@
 package ru.itmo.gymbro.identity.api;
 
+import reactor.core.publisher.Mono;
+
 import java.util.Set;
 
 public interface UserDirectory {
 
-    public UserSnapshot getSnapshot(long id);
+    public Mono<UserSnapshot> getSnapshot(long id);
 
-    public Set<Long> bannedUserIds();
+    public Mono<Set<Long>> bannedUserIds();
 }

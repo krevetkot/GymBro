@@ -1,18 +1,17 @@
 package ru.itmo.gymbro.catalog.repository;
 
-import jakarta.persistence.LockModeType;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Lock;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.r2dbc.repository.Query;
+import org.springframework.data.r2dbc.repository.R2dbcRepository;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.catalog.model.GymRequest;
 
-import java.util.Optional;
+public interface GymRequestRepository extends R2dbcRepository<GymRequest, Long> {
 
-public interface GymRequestRepository extends JpaRepository<GymRequest, Long> {
+    /** Блокирует строку заявки до конца транзакции: одобрить или отклонить её может только один запрос. */
+    @Query("SELECT * FROM gym_requests WHERE id = :id FOR UPDATE")
+    public Mono<GymRequest> findByIdForUpdate(long id);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT request FROM GymRequest request WHERE request.id = :id")
-    public Optional<GymRequest> findByIdForUpdate(long id);
+    public Flux<GymRequest> findAllBy(Pageable pageable);
 }

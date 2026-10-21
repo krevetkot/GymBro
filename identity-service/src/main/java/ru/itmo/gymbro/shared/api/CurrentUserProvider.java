@@ -1,6 +1,9 @@
 package ru.itmo.gymbro.shared.api;
 
+import reactor.core.publisher.Mono;
+
 public interface CurrentUserProvider {
 
-    public long currentUserId();
+    /** Идентификатор текущего пользователя из запроса; ошибка {@link UnauthorizedException}, если его нет. */
+    public Mono<Long> currentUserId();
 }

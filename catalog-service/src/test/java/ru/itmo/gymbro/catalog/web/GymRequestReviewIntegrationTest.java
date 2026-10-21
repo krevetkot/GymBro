@@ -1,22 +1,15 @@
 package ru.itmo.gymbro.catalog.web;
 
-import jakarta.persistence.EntityManager;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessResourceFailureException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.web.context.WebApplicationContext;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.model.GymRequest;
@@ -35,31 +28,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doCallRealMethod;
-import static org.mockito.Mockito.doThrow;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mockingDetails;
 
-// No surrounding test transaction: assertions observe real commits and rollbacks of HTTP operations.
-@Transactional(propagation = Propagation.NOT_SUPPORTED)
+/**
+ * Транзакция одобрения заявки на реальной базе: каждое HTTP-действие коммитится или откатывается само,
+ * проверки смотрят на итоговое состояние таблиц.
+ */
 class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
 
-    @Autowired
-    private WebApplicationContext context;
-    @Autowired
-    private PlatformTransactionManager transactionManager;
     @Autowired
     private GymRepository gyms;
     @MockitoSpyBean
     private GymRequestRepository requests;
-    @Autowired
-    private EntityManager entityManager;
-    @Autowired
-    private JdbcTemplate jdbc;
 
-    private MockMvc mvc;
-    private TransactionTemplate transaction;
     private String city;
     private long authorId;
     private long adminId;
@@ -67,145 +49,124 @@ class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        mvc = MockMvcBuilders.webAppContextSetup(context).build();
-        transaction = new TransactionTemplate(transactionManager);
         city = "Review-" + UUID.randomUUID();
-        transaction.executeWithoutResult(status -> {
-            authorId = testUsers.active();
-            adminId = testUsers.admin();
-            requestId = requests.save(GymRequest.submit(authorId, "New gym", city, "New address")).getId();
-        });
-    }
-
-    @AfterEach
-    void cleanUpCommittedFixtures() {
-        transaction.executeWithoutResult(status -> {
-            jdbc.update("DELETE FROM gym_requests WHERE author_id = ?", authorId);
-            jdbc.update("DELETE FROM gyms WHERE city = ?", city);
-            testUsers.remove(authorId);
-            testUsers.remove(adminId);
-        });
+        authorId = testUsers.active();
+        adminId = testUsers.admin();
+        requestId = requests.save(GymRequest.submit(authorId, "New gym", city, "New address")).block().getId();
     }
 
     @Test
-    void approvesAndCreatesGymFromRequest() throws Exception {
-        mvc.perform(post(action(requestId, "approve")).header("X-User-Id", adminId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("APPROVED"))
-                .andExpect(jsonPath("$.reviewedBy").value(adminId))
-                .andExpect(jsonPath("$.gymId").isNumber());
+    void approvesAndCreatesGymFromRequest() {
+        review(requestId, "approve")
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.status").isEqualTo("APPROVED")
+                .jsonPath("$.reviewedBy").isEqualTo(adminId)
+                .jsonPath("$.gymId").isNumber();
 
-        transaction.executeWithoutResult(status -> {
-            GymRequest request = requests.findById(requestId).orElseThrow();
-            assertThat(request.getStatus()).isEqualTo(RequestStatus.APPROVED);
-            Gym created = gyms.findById(request.getGymId()).orElseThrow();
-            assertThat(created.getCity()).isEqualTo(city);
-            assertThat(created.getAddress()).isEqualTo("New address");
-        });
+        GymRequest request = requests.findById(requestId).block();
+        assertThat(request.getStatus()).isEqualTo(RequestStatus.APPROVED);
+        Gym created = gyms.findById(request.getGymId()).block();
+        assertThat(created.getCity()).isEqualTo(city);
+        assertThat(created.getAddress()).isEqualTo("New address");
     }
 
     @Test
-    void rejectsWithoutCreatingGym() throws Exception {
-        mvc.perform(post(action(requestId, "reject")).header("X-User-Id", adminId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("REJECTED"))
-                .andExpect(jsonPath("$.reviewedBy").value(adminId))
-                .andExpect(jsonPath("$.gymId").doesNotExist());
-        assertThat(requests.findById(requestId).orElseThrow().getStatus()).isEqualTo(RequestStatus.REJECTED);
+    void rejectsWithoutCreatingGym() {
+        review(requestId, "reject")
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.status").isEqualTo("REJECTED")
+                .jsonPath("$.reviewedBy").isEqualTo(adminId)
+                .jsonPath("$.gymId").doesNotExist();
+        assertThat(requests.findById(requestId).block().getStatus()).isEqualTo(RequestStatus.REJECTED);
         assertThat(newGymCount()).isZero();
     }
 
     @Test
-    void rollsBackCreatedGymWhenSavingDecisionFails() throws Exception {
-        doThrow(new DataAccessResourceFailureException("Injected decision save failure"))
-                .when(requests).saveAndFlush(any(GymRequest.class));
-        mvc.perform(post(action(requestId, "approve")).header("X-User-Id", adminId))
-                .andExpect(status().isInternalServerError());
+    void rollsBackCreatedGymWhenSavingDecisionFails() {
+        doReturn(Mono.error(new DataAccessResourceFailureException("Injected decision save failure")))
+                .when(requests).save(any(GymRequest.class));
 
-        // Gym INSERT was real; failure of the following save must roll it back.
-        transaction.executeWithoutResult(status -> {
-            GymRequest request = requests.findById(requestId).orElseThrow();
-            assertThat(request.getStatus()).isEqualTo(RequestStatus.PENDING);
-            assertThat(request.getReviewedBy()).isNull();
-            assertThat(request.getGymId()).isNull();
-            assertThat(newGymCount()).isZero();
-        });
+        review(requestId, "approve").expectStatus().is5xxServerError();
+
+        // INSERT зала уже прошёл; сбой следующего сохранения должен откатить и его.
+        GymRequest request = requests.findById(requestId).block();
+        assertThat(request.getStatus()).isEqualTo(RequestStatus.PENDING);
+        assertThat(request.getReviewedBy()).isNull();
+        assertThat(request.getGymId()).isNull();
+        assertThat(newGymCount()).isZero();
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"approve", "reject"})
-    void rollsBackPersistedDecisionAndAllowsRetry(String operation) throws Exception {
+    @SuppressWarnings("unchecked")
+    void rollsBackPersistedDecisionAndAllowsRetry(String operation) {
         AtomicBoolean decisionWritten = new AtomicBoolean();
-        doAnswer(invocation -> {
-            entityManager.flush();
-            String storedStatus = jdbc.queryForObject(
-                    "SELECT status FROM gym_requests WHERE id = ?", String.class, requestId);
-            assertThat(storedStatus).isEqualTo(operation.equals("approve") ? "APPROVED" : "REJECTED");
-            decisionWritten.set(true);
-            throw new DataAccessResourceFailureException("Injected failure after decision was written");
-        }).when(requests).saveAndFlush(any(GymRequest.class));
+        // spy поверх прокси репозитория: настоящий save — это ответ spy по умолчанию
+        Answer<?> realSave = mockingDetails(requests).getMockCreationSettings().getDefaultAnswer();
+        doAnswer(invocation -> ((Mono<GymRequest>) realSave.answer(invocation))
+                // запрос идёт в той же транзакции и видит ещё не закоммиченное решение
+                .flatMap(saved -> database.sql("SELECT status FROM gym_requests WHERE id = :id")
+                        .bind("id", requestId)
+                        .map(row -> row.get("status", String.class))
+                        .one())
+                .doOnNext(storedStatus -> {
+                    assertThat(storedStatus).isEqualTo(operation.equals("approve") ? "APPROVED" : "REJECTED");
+                    decisionWritten.set(true);
+                })
+                .then(Mono.error(new DataAccessResourceFailureException("Injected failure after decision was written"))))
+                .when(requests).save(any(GymRequest.class));
 
-        mvc.perform(post(action(requestId, operation)).header("X-User-Id", adminId))
-                .andExpect(status().isInternalServerError());
+        review(requestId, operation).expectStatus().is5xxServerError();
         assertThat(decisionWritten).isTrue();
 
-        transaction.executeWithoutResult(status -> {
-            GymRequest stored = requests.findById(requestId).orElseThrow();
-            assertThat(stored.getStatus()).isEqualTo(RequestStatus.PENDING);
-            assertThat(stored.getReviewedBy()).isNull();
-            assertThat(stored.getGymId()).isNull();
-            assertThat(newGymCount()).isZero();
-        });
+        GymRequest stored = requests.findById(requestId).block();
+        assertThat(stored.getStatus()).isEqualTo(RequestStatus.PENDING);
+        assertThat(stored.getReviewedBy()).isNull();
+        assertThat(stored.getGymId()).isNull();
+        assertThat(newGymCount()).isZero();
 
-        doAnswer(invocation -> {
-            entityManager.flush();
-            return invocation.getArgument(0);
-        }).when(requests).saveAndFlush(any(GymRequest.class));
-        mvc.perform(post(action(requestId, operation)).header("X-User-Id", adminId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value(operation.equals("approve") ? "APPROVED" : "REJECTED"))
-                .andExpect(jsonPath("$.reviewedBy").value(adminId));
+        doAnswer(realSave).when(requests).save(any(GymRequest.class));
+        review(requestId, operation)
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.status").isEqualTo(operation.equals("approve") ? "APPROVED" : "REJECTED")
+                .jsonPath("$.reviewedBy").isEqualTo(adminId);
         assertThat(newGymCount()).isEqualTo(operation.equals("approve") ? 1 : 0);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"approve", "reject"})
-    void cannotReviewAnAlreadyReviewedRequest(String firstAction) throws Exception {
-        mvc.perform(post(action(requestId, firstAction)).header("X-User-Id", adminId))
-                .andExpect(status().isOk());
+    void cannotReviewAnAlreadyReviewedRequest(String firstAction) {
+        review(requestId, firstAction).expectStatus().isOk();
         for (String nextAction : List.of("approve", "reject")) {
-            mvc.perform(post(action(requestId, nextAction)).header("X-User-Id", adminId))
-                    .andExpect(status().isConflict())
-                    .andExpect(jsonPath("$.detail").value("Заявка уже рассмотрена"));
+            review(requestId, nextAction)
+                    .expectStatus().isEqualTo(409)
+                    .expectBody().jsonPath("$.detail").isEqualTo("Заявка уже рассмотрена");
         }
         assertThat(newGymCount()).isEqualTo(firstAction.equals("approve") ? 1 : 0);
     }
 
     @Test
-    void conflictsIfGymAppearedAfterSubmission() throws Exception {
-        transaction.executeWithoutResult(status -> gyms.save(Gym.of("Other gym", city, "New address")));
-        mvc.perform(post(action(requestId, "approve")).header("X-User-Id", adminId))
-                .andExpect(status().isConflict());
-        assertThat(requests.findById(requestId).orElseThrow().getStatus()).isEqualTo(RequestStatus.PENDING);
+    void conflictsIfGymAppearedAfterSubmission() {
+        gyms.save(Gym.of("Other gym", city, "New address")).block();
+
+        review(requestId, "approve").expectStatus().isEqualTo(409);
+        assertThat(requests.findById(requestId).block().getStatus()).isEqualTo(RequestStatus.PENDING);
         assertThat(newGymCount()).isEqualTo(1);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"approve", "reject"})
-    void checksAccessAndIdentifiers(String operation) throws Exception {
-        mvc.perform(post(action(requestId, operation))).andExpect(status().isUnauthorized());
-        mvc.perform(post(action(requestId, operation)).header("X-User-Id", authorId))
-                .andExpect(status().isForbidden());
-        mvc.perform(post(action(Long.MAX_VALUE, operation)).header("X-User-Id", adminId))
-                .andExpect(status().isNotFound());
-        mvc.perform(post(action(-1, operation)).header("X-User-Id", adminId))
-                .andExpect(status().isBadRequest());
-        transaction.executeWithoutResult(status -> {
-            testUsers.ban(adminId);
-        });
-        mvc.perform(post(action(requestId, operation)).header("X-User-Id", adminId))
-                .andExpect(status().isForbidden());
-        assertThat(requests.findById(requestId).orElseThrow().getStatus()).isEqualTo(RequestStatus.PENDING);
+    void checksAccessAndIdentifiers(String operation) {
+        client.post().uri(action(requestId, operation)).exchange().expectStatus().isUnauthorized();
+        review(requestId, operation, authorId).expectStatus().isForbidden();
+        review(Long.MAX_VALUE, operation).expectStatus().isNotFound();
+        review(-1, operation).expectStatus().isBadRequest();
+        testUsers.ban(adminId);
+        review(requestId, operation).expectStatus().isForbidden();
+        assertThat(requests.findById(requestId).block().getStatus()).isEqualTo(RequestStatus.PENDING);
         assertThat(newGymCount()).isZero();
     }
 
@@ -214,12 +175,10 @@ class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
         List<Integer> statuses = concurrently(
                 () -> reviewStatus(requestId, "approve"),
                 () -> reviewStatus(requestId, "approve"));
+
         assertThat(statuses).containsExactlyInAnyOrder(200, 409);
         assertThat(newGymCount()).isEqualTo(1);
-        transaction.executeWithoutResult(status -> {
-            GymRequest request = requests.findById(requestId).orElseThrow();
-            assertThat(request.getStatus()).isEqualTo(RequestStatus.APPROVED);
-        });
+        assertThat(requests.findById(requestId).block().getStatus()).isEqualTo(RequestStatus.APPROVED);
     }
 
     @Test
@@ -228,45 +187,51 @@ class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
                 () -> reviewStatus(requestId, "approve"),
                 () -> reviewStatus(requestId, "reject")))
                 .containsExactlyInAnyOrder(200, 409);
-        GymRequest request = requests.findById(requestId).orElseThrow();
+        GymRequest request = requests.findById(requestId).block();
         assertThat(request.getStatus()).isIn(RequestStatus.APPROVED, RequestStatus.REJECTED);
         assertThat(newGymCount()).isEqualTo(request.getStatus() == RequestStatus.APPROVED ? 1 : 0);
     }
 
     @Test
     void concurrentDifferentApprovalsCreateSeparateGyms() throws Exception {
-        long otherId = transaction.execute(status ->
-                requests.save(GymRequest.submit(authorId, "Second gym", city, "Second address")).getId());
+        long otherId = requests.save(GymRequest.submit(authorId, "Second gym", city, "Second address"))
+                .block().getId();
+
         assertThat(concurrently(
                 () -> reviewStatus(requestId, "approve"),
                 () -> reviewStatus(otherId, "approve"))).containsOnly(200);
-        transaction.executeWithoutResult(status -> {
-            long firstGym = requests.findById(requestId).orElseThrow().getGymId();
-            long secondGym = requests.findById(otherId).orElseThrow().getGymId();
-            assertThat(firstGym).isNotEqualTo(secondGym);
-            assertThat(gyms.findById(firstGym)).isPresent();
-            assertThat(gyms.findById(secondGym)).isPresent();
-        });
-    }
-
-    private int reviewStatus(long id, String operation) throws Exception {
-        return mvc.perform(post(action(id, operation)).header("X-User-Id", adminId))
-                .andReturn().getResponse().getStatus();
+        long firstGym = requests.findById(requestId).block().getGymId();
+        long secondGym = requests.findById(otherId).block().getGymId();
+        assertThat(firstGym).isNotEqualTo(secondGym);
+        assertThat(gyms.existsById(firstGym).block()).isTrue();
+        assertThat(gyms.existsById(secondGym).block()).isTrue();
     }
 
     @Test
     void concurrentDifferentRequestsForSameAddressHaveOneWinner() throws Exception {
-        long otherId = transaction.execute(status ->
-                requests.save(GymRequest.submit(authorId, "Duplicate proposal", city, "New address")).getId());
+        long otherId = requests.save(GymRequest.submit(authorId, "Duplicate proposal", city, "New address"))
+                .block().getId();
+
         assertThat(concurrently(
                 () -> reviewStatus(requestId, "approve"),
                 () -> reviewStatus(otherId, "approve"))).containsExactlyInAnyOrder(200, 409);
         assertThat(newGymCount()).isEqualTo(1);
-        transaction.executeWithoutResult(status -> {
-            assertThat(List.of(requests.findById(requestId).orElseThrow().getStatus(),
-                    requests.findById(otherId).orElseThrow().getStatus()))
-                    .containsExactlyInAnyOrder(RequestStatus.APPROVED, RequestStatus.PENDING);
-        });
+        assertThat(List.of(requests.findById(requestId).block().getStatus(),
+                requests.findById(otherId).block().getStatus()))
+                .containsExactlyInAnyOrder(RequestStatus.APPROVED, RequestStatus.PENDING);
+    }
+
+    private WebTestClient.ResponseSpec review(long id, String operation) {
+        return review(id, operation, adminId);
+    }
+
+    private WebTestClient.ResponseSpec review(
+            long id, String operation, long userId) {
+        return client.post().uri(action(id, operation)).header("X-User-Id", String.valueOf(userId)).exchange();
+    }
+
+    private int reviewStatus(long id, String operation) {
+        return review(id, operation).returnResult(Void.class).getStatus().value();
     }
 
     private List<Integer> concurrently(Callable<Integer> first, Callable<Integer> second) throws Exception {
@@ -292,8 +257,12 @@ class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
     }
 
     private long newGymCount() {
-        return jdbc.queryForObject("SELECT COUNT(*) FROM gyms WHERE city = ? AND address = ?",
-                Long.class, city, "New address");
+        return database.sql("SELECT COUNT(*) AS total FROM gyms WHERE city = :city AND address = :address")
+                .bind("city", city)
+                .bind("address", "New address")
+                .map(row -> row.get("total", Long.class))
+                .one()
+                .block();
     }
 
     private static String action(long id, String operation) {

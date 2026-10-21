@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.catalog.api.CatalogDirectory;
 import ru.itmo.gymbro.catalog.api.GymSnapshot;
 import ru.itmo.gymbro.catalog.api.SportSnapshot;
@@ -22,12 +23,12 @@ class InternalCatalogController {
     }
 
     @GetMapping("/sports/{id}")
-    SportSnapshot getSport(@PathVariable @Positive long id) {
+    Mono<SportSnapshot> getSport(@PathVariable @Positive long id) {
         return catalog.getSport(id);
     }
 
     @GetMapping("/gyms/{id}")
-    GymSnapshot getGym(@PathVariable @Positive long id) {
+    Mono<GymSnapshot> getGym(@PathVariable @Positive long id) {
         return catalog.getGym(id);
     }
 }

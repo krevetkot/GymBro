@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.catalog.api.GymRequestUseCases;
 import ru.itmo.gymbro.catalog.dto.GymRequestResponse;
 import ru.itmo.gymbro.catalog.dto.GymWriteRequest;
@@ -49,8 +50,8 @@ class GymRequestController {
             description = "Автор определяется по X-User-Id. Создаётся только заявка в статусе PENDING.")
     @ApiResponse(responseCode = "201", description = "Заявка создана")
     @ApiResponse(responseCode = "409", description = "Зал по этому адресу уже существует")
-    GymRequestResponse submit(@Valid @RequestBody GymWriteRequest request) {
-        return GymRequestResponse.from(requests.submit(request.name(), request.city(), request.address()));
+    Mono<GymRequestResponse> submit(@Valid @RequestBody GymWriteRequest request) {
+        return requests.submit(request.name(), request.city(), request.address()).map(GymRequestResponse::from);
     }
 
     @GetMapping
@@ -61,10 +62,11 @@ class GymRequestController {
     @ApiResponse(responseCode = "200", description = "Страница заявок",
             headers = @Header(name = "X-Total-Count", description = "Общее количество заявок",
                     schema = @Schema(type = "integer", format = "int64")))
-    ResponseEntity<List<GymRequestResponse>> getPage(
+    Mono<ResponseEntity<List<GymRequestResponse>>> getPage(
             @ParameterObject @PageableDefault(size = 20, sort = {"createdAt", "id"},
                     direction = Sort.Direction.DESC) Pageable pageable) {
-        return PageResponses.withTotalCount(requests.getPage(pageable).map(GymRequestResponse::from));
+        return requests.getPage(pageable)
+                .map(page -> PageResponses.withTotalCount(page.map(GymRequestResponse::from)));
     }
 
     @PostMapping("/{id}/approve")
@@ -74,8 +76,8 @@ class GymRequestController {
     @ApiResponse(responseCode = "200", description = "Заявка одобрена, зал создан в каталоге")
     @ApiResponse(responseCode = "404", description = "Заявка не найдена")
     @ApiResponse(responseCode = "409", description = "Заявка уже рассмотрена или зал по адресу уже существует")
-    GymRequestResponse approve(@PathVariable @Positive long id) {
-        return GymRequestResponse.from(requests.approve(id));
+    Mono<GymRequestResponse> approve(@PathVariable @Positive long id) {
+        return requests.approve(id).map(GymRequestResponse::from);
     }
 
     @PostMapping("/{id}/reject")
@@ -84,7 +86,7 @@ class GymRequestController {
     @ApiResponse(responseCode = "200", description = "Заявка отклонена")
     @ApiResponse(responseCode = "404", description = "Заявка не найдена")
     @ApiResponse(responseCode = "409", description = "Заявка уже рассмотрена")
-    GymRequestResponse reject(@PathVariable @Positive long id) {
-        return GymRequestResponse.from(requests.reject(id));
+    Mono<GymRequestResponse> reject(@PathVariable @Positive long id) {
+        return requests.reject(id).map(GymRequestResponse::from);
     }
 }

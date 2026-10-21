@@ -1,65 +1,58 @@
 package ru.itmo.gymbro.shared.web;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
+import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.web.filter.reactive.ServerWebExchangeContextFilter;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 import ru.itmo.gymbro.shared.api.UnauthorizedException;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class HeaderCurrentUserProviderTest {
 
     private final HeaderCurrentUserProvider provider = new HeaderCurrentUserProvider();
 
-    @AfterEach
-    void clearRequest() {
-        RequestContextHolder.resetRequestAttributes();
-    }
-
     @Test
-    @DisplayName("Идентификатор берётся из заголовка X-User-Id")
+    @DisplayName("Идентификатор берётся из заголовка X-User-Id запроса в контексте Reactor")
     void readsUserIdFromHeader() {
-        bindRequestWithHeader(" 42 ");
-
-        assertThat(provider.currentUserId()).isEqualTo(42L);
+        StepVerifier.create(withRequestHeader(" 42 ")).expectNext(42L).verifyComplete();
     }
 
     @Test
     @DisplayName("Без заголовка пользователь не аутентифицирован")
     void rejectsMissingHeader() {
-        bindRequestWithHeader(null);
-
-        assertThatThrownBy(provider::currentUserId)
-                .isInstanceOf(UnauthorizedException.class)
-                .hasMessageContaining("X-User-Id");
+        StepVerifier.create(withRequestHeader(null))
+                .expectErrorSatisfies(error -> assertThat(error)
+                        .isInstanceOf(UnauthorizedException.class)
+                        .hasMessageContaining("X-User-Id"))
+                .verify();
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"", "abc", "0", "-5", "1.5", "99999999999999999999"})
     @DisplayName("Заголовок не с положительным числом отклоняется")
     void rejectsMalformedHeader(String header) {
-        bindRequestWithHeader(header);
-
-        assertThatThrownBy(provider::currentUserId).isInstanceOf(UnauthorizedException.class);
+        StepVerifier.create(withRequestHeader(header)).verifyError(UnauthorizedException.class);
     }
 
     @Test
     @DisplayName("Вне HTTP-запроса текущего пользователя нет")
     void failsOutsideOfRequest() {
-        assertThatThrownBy(provider::currentUserId).isInstanceOf(IllegalStateException.class);
+        StepVerifier.create(provider.currentUserId()).verifyError(IllegalStateException.class);
     }
 
-    private static void bindRequestWithHeader(String value) {
-        MockHttpServletRequest request = new MockHttpServletRequest();
+    private Mono<Long> withRequestHeader(String value) {
+        MockServerHttpRequest.BaseBuilder<?> request = MockServerHttpRequest.get("/");
         if (value != null) {
-            request.addHeader("X-User-Id", value);
+            request.header("X-User-Id", value);
         }
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+        return provider.currentUserId()
+                .contextWrite(context -> context.put(ServerWebExchangeContextFilter.EXCHANGE_CONTEXT_ATTRIBUTE, exchange));
     }
 }

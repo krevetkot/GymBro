@@ -3,8 +3,9 @@ package ru.itmo.gymbro.catalog.repository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import reactor.test.StepVerifier;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.catalog.model.Sport;
 
@@ -18,20 +19,32 @@ class SportRepositoryTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Миграция заполнила справочник видов спорта")
     void seedsSportsFromMigration() {
-        Page<Sport> page = sports.findAll(PageRequest.of(0, 50));
+        StepVerifier.create(sports.count())
+                .assertNext(total -> assertThat(total).isGreaterThanOrEqualTo(10))
+                .verifyComplete();
+        StepVerifier.create(sports.findAllBy(PageRequest.of(0, 50)).map(Sport::getName).collectList())
+                .assertNext(names -> assertThat(names).contains("Бег", "Плавание"))
+                .verifyComplete();
+    }
 
-        assertThat(page.getTotalElements()).isGreaterThanOrEqualTo(10);
-        assertThat(page.getContent()).extracting(Sport::getName).contains("Бег", "Плавание");
+    @Test
+    @DisplayName("Страница отдаёт не больше size записей в заданном порядке")
+    void pagesWithSort() {
+        StepVerifier.create(sports.findAllBy(PageRequest.of(1, 3, Sort.by("id"))).map(Sport::getId).collectList())
+                .assertNext(ids -> assertThat(ids).hasSize(3).isSorted())
+                .verifyComplete();
     }
 
     @Test
     @DisplayName("Новый вид спорта сохраняется с обрезанными пробелами")
     void savesNewSport() {
-        Sport saved = sports.save(Sport.of("  Сквош  "));
-
-        assertThat(saved.getId()).isNotNull();
-        assertThat(saved.getName()).isEqualTo("Сквош");
-        assertThat(sports.existsByName("Сквош")).isTrue();
-        assertThat(sports.existsByName("Кёрлинг")).isFalse();
+        StepVerifier.create(sports.save(Sport.of("  Сквош  ")))
+                .assertNext(saved -> {
+                    assertThat(saved.getId()).isNotNull();
+                    assertThat(saved.getName()).isEqualTo("Сквош");
+                })
+                .verifyComplete();
+        StepVerifier.create(sports.existsByName("Сквош")).expectNext(true).verifyComplete();
+        StepVerifier.create(sports.existsByName("Кёрлинг")).expectNext(false).verifyComplete();
     }
 }

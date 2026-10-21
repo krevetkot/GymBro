@@ -1,14 +1,17 @@
 package ru.itmo.gymbro.shared.web;
 
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.filter.reactive.ServerWebExchangeContextFilter;
+import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.shared.api.CurrentUserProvider;
 import ru.itmo.gymbro.shared.api.UnauthorizedException;
 
 import java.util.regex.Pattern;
 
+/**
+ * Текущий пользователь из заголовка X-User-Id. В WebFlux запрос не привязан к потоку,
+ * поэтому он берётся из контекста Reactor, куда его кладёт {@link ServerWebExchangeContextFilter}.
+ */
 @Component
 class HeaderCurrentUserProvider implements CurrentUserProvider {
 
@@ -17,23 +20,22 @@ class HeaderCurrentUserProvider implements CurrentUserProvider {
     private static final Pattern POSITIVE_ID = Pattern.compile("[1-9]\\d{0,17}");
 
     @Override
-    public long currentUserId() {
-        String header = currentRequest().getHeader(USER_ID_HEADER);
+    public Mono<Long> currentUserId() {
+        return Mono.deferContextual(context -> ServerWebExchangeContextFilter.getExchange(context)
+                .map(exchange -> parse(exchange.getRequest().getHeaders().getFirst(USER_ID_HEADER)))
+                .orElseGet(() -> Mono.error(new IllegalStateException(
+                        "Текущий пользователь определяется только внутри HTTP-запроса"))));
+    }
+
+    static Mono<Long> parse(String header) {
         if (header == null || header.isBlank()) {
-            throw new UnauthorizedException("Не передан заголовок " + USER_ID_HEADER);
+            return Mono.error(new UnauthorizedException("Не передан заголовок " + USER_ID_HEADER));
         }
         String value = header.trim();
         if (!POSITIVE_ID.matcher(value).matches()) {
-            throw new UnauthorizedException(
-                    "Заголовок " + USER_ID_HEADER + " должен содержать положительный идентификатор пользователя");
+            return Mono.error(new UnauthorizedException(
+                    "Заголовок " + USER_ID_HEADER + " должен содержать положительный идентификатор пользователя"));
         }
-        return Long.parseLong(value);
-    }
-
-    private static HttpServletRequest currentRequest() {
-        if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes) {
-            return attributes.getRequest();
-        }
-        throw new IllegalStateException("Текущий пользователь определяется только внутри HTTP-запроса");
+        return Mono.just(Long.parseLong(value));
     }
 }

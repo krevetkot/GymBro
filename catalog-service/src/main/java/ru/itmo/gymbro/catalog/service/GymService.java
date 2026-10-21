@@ -3,7 +3,7 @@ package ru.itmo.gymbro.catalog.service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.catalog.api.GymUseCases;
 import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.repository.GymRepository;
@@ -14,7 +14,6 @@ import ru.itmo.gymbro.shared.api.NotFoundException;
 import java.util.Set;
 
 @Service
-@Transactional(readOnly = true)
 class GymService implements GymUseCases {
 
     private final GymRepository gyms;
@@ -26,47 +25,50 @@ class GymService implements GymUseCases {
     }
 
     @Override
-    @Transactional
-    public Gym create(String name, String city, String address) {
-        Gym candidate = Gym.of(name, city, address);
-        if (gyms.existsByCityAndAddress(candidate.getCity(), candidate.getAddress())) {
-            throw new ConflictException("Зал по этому адресу уже существует");
-        }
-        return gyms.save(candidate);
+    public Mono<Gym> create(String name, String city, String address) {
+        return Mono.fromCallable(() -> Gym.of(name, city, address))
+                .flatMap(candidate -> requireAddressIsFree(candidate).then(Mono.defer(() -> gyms.save(candidate))));
     }
 
     @Override
-    public Gym getById(long id) {
+    public Mono<Gym> getById(long id) {
         return gyms.findById(id)
-                .orElseThrow(() -> new NotFoundException("Зал " + id + " не найден"));
+                .switchIfEmpty(Mono.error(() -> new NotFoundException("Зал " + id + " не найден")));
     }
 
     @Override
-    public Page<Gym> getPage(Pageable pageable) {
-        return gyms.findAll(CatalogPagination.validate(pageable, Set.of("id", "name", "city", "address")));
+    public Mono<Page<Gym>> getPage(Pageable pageable) {
+        return CatalogPagination.page(pageable, Set.of("id", "name", "city", "address"),
+                gyms::findAllBy, gyms.count());
     }
 
     @Override
-    @Transactional
-    public Gym update(long id, String name, String city, String address) {
-        access.requireAdmin();
-        Gym existing = getById(id);
-        Gym candidate = new Gym(id, name, city, address);
-        if ((!existing.getCity().equals(candidate.getCity())
-                || !existing.getAddress().equals(candidate.getAddress()))
-                && gyms.existsByCityAndAddress(candidate.getCity(), candidate.getAddress())) {
-            throw new ConflictException("Зал по этому адресу уже существует");
-        }
-        existing.rename(candidate.getName());
-        existing.relocate(candidate.getCity(), candidate.getAddress());
-        return gyms.save(existing);
+    public Mono<Gym> update(long id, String name, String city, String address) {
+        return access.requireAdmin()
+                .then(Mono.fromCallable(() -> new Gym(id, name, city, address)))
+                .flatMap(candidate -> getById(id).flatMap(existing -> {
+                    boolean moved = !existing.getCity().equals(candidate.getCity())
+                            || !existing.getAddress().equals(candidate.getAddress());
+                    Mono<Void> addressCheck = moved ? requireAddressIsFree(candidate) : Mono.empty();
+                    return addressCheck.then(Mono.defer(() -> {
+                        existing.rename(candidate.getName());
+                        existing.relocate(candidate.getCity(), candidate.getAddress());
+                        return gyms.save(existing);
+                    }));
+                }));
     }
 
     @Override
-    @Transactional
-    public void delete(long id) {
-        access.requireAdmin();
-        getById(id);
-        gyms.deleteById(id);
+    public Mono<Void> delete(long id) {
+        return access.requireAdmin()
+                .then(Mono.defer(() -> getById(id)))
+                .flatMap(gyms::delete);
+    }
+
+    private Mono<Void> requireAddressIsFree(Gym candidate) {
+        return gyms.existsByCityAndAddress(candidate.getCity(), candidate.getAddress())
+                .flatMap(exists -> exists
+                        ? Mono.error(new ConflictException("Зал по этому адресу уже существует"))
+                        : Mono.empty());
     }
 }

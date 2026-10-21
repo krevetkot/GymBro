@@ -5,7 +5,6 @@ import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.identity.model.User;
 import ru.itmo.gymbro.identity.repository.UserRepository;
@@ -19,9 +18,6 @@ class EntityValidationTest extends AbstractIntegrationTest {
 
     @Autowired
     private UserRepository users;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Test
     @DisplayName("Пользователь с некорректным email не сохраняется")

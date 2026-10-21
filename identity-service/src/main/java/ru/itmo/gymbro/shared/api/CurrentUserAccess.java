@@ -1,9 +1,10 @@
 package ru.itmo.gymbro.shared.api;
 
+import reactor.core.publisher.Mono;
+
 public interface CurrentUserAccess {
 
-    public long requireActiveUser();
+    public Mono<Long> requireActiveUser();
 
-    public long requireAdmin();
+    public Mono<Long> requireAdmin();
 }
-

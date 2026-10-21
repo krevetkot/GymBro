@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.catalog.api.GymUseCases;
 import ru.itmo.gymbro.catalog.dto.GymResponse;
 import ru.itmo.gymbro.catalog.dto.GymWriteRequest;
@@ -48,9 +49,10 @@ class GymController {
             headers = @Header(name = "Location", description = "Адрес созданной записи",
                     schema = @Schema(type = "string")))
     @ApiResponse(responseCode = "409", description = "Такая запись уже существует")
-    ResponseEntity<GymResponse> create(@Valid @RequestBody GymWriteRequest request) {
-        GymResponse response = GymResponse.from(gyms.create(request.name(), request.city(), request.address()));
-        return ResponseEntity.created(URI.create("/api/v1/gyms/" + response.id())).body(response);
+    Mono<ResponseEntity<GymResponse>> create(@Valid @RequestBody GymWriteRequest request) {
+        return gyms.create(request.name(), request.city(), request.address())
+                .map(GymResponse::from)
+                .map(response -> ResponseEntity.created(URI.create("/api/v1/gyms/" + response.id())).body(response));
     }
 
     @SecurityRequirements
@@ -58,8 +60,8 @@ class GymController {
     @Operation(summary = "Получить запись по идентификатору")
     @ApiResponse(responseCode = "200", description = "Запись найдена")
     @ApiResponse(responseCode = "404", description = "Запись не найдена")
-    GymResponse getById(@PathVariable @Positive long id) {
-        return GymResponse.from(gyms.getById(id));
+    Mono<GymResponse> getById(@PathVariable @Positive long id) {
+        return gyms.getById(id).map(GymResponse::from);
     }
 
     @SecurityRequirements
@@ -70,9 +72,9 @@ class GymController {
     @ApiResponse(responseCode = "200", description = "Страница каталога",
             headers = @Header(name = "X-Total-Count", description = "Общее количество записей",
                     schema = @Schema(type = "integer", format = "int64")))
-    ResponseEntity<List<GymResponse>> getPage(
+    Mono<ResponseEntity<List<GymResponse>>> getPage(
             @ParameterObject @PageableDefault(size = 20, sort = "id") Pageable pageable) {
-        return PageResponses.withTotalCount(gyms.getPage(pageable).map(GymResponse::from));
+        return gyms.getPage(pageable).map(page -> PageResponses.withTotalCount(page.map(GymResponse::from)));
     }
 
     @SecurityRequirement(name = "currentUser")
@@ -83,8 +85,8 @@ class GymController {
     @ApiResponse(responseCode = "200", description = "Запись обновлена")
     @ApiResponse(responseCode = "404", description = "Запись не найдена")
     @ApiResponse(responseCode = "409", description = "Новые значения заняты другой записью")
-    GymResponse update(@PathVariable @Positive long id, @Valid @RequestBody GymWriteRequest request) {
-        return GymResponse.from(gyms.update(id, request.name(), request.city(), request.address()));
+    Mono<GymResponse> update(@PathVariable @Positive long id, @Valid @RequestBody GymWriteRequest request) {
+        return gyms.update(id, request.name(), request.city(), request.address()).map(GymResponse::from);
     }
 
     @SecurityRequirement(name = "currentUser")
@@ -95,8 +97,7 @@ class GymController {
     @ApiResponse(responseCode = "204", description = "Запись удалена")
     @ApiResponse(responseCode = "404", description = "Запись не найдена")
     @ApiResponse(responseCode = "409", description = "На запись ссылаются другие данные")
-    ResponseEntity<Void> delete(@PathVariable @Positive long id) {
-        gyms.delete(id);
-        return ResponseEntity.noContent().build();
+    Mono<ResponseEntity<Void>> delete(@PathVariable @Positive long id) {
+        return gyms.delete(id).thenReturn(ResponseEntity.noContent().build());
     }
 }

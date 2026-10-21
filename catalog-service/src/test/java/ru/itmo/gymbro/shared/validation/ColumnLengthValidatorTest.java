@@ -16,7 +16,7 @@ class ColumnLengthValidatorTest extends AbstractIntegrationTest {
     private ColumnLengthValidator validator;
 
     @Test
-    @DisplayName("Hibernate берёт длину колонки из @Size сущности")
+    @DisplayName("Ожидаемая длина колонки берётся из @Size поля сущности")
     void readsLengthFromSizeAnnotation() {
         assertThat(validator.expectedColumns())
                 .anySatisfy(column -> {
@@ -28,13 +28,13 @@ class ColumnLengthValidatorTest extends AbstractIntegrationTest {
 
     @Test
     @DisplayName("Длины реальных сущностей совпадают со схемой")
-    void acceptsActualSchema() throws Exception {
+    void acceptsActualSchema() {
         assertThat(validator.mismatchesFor(validator.expectedColumns())).isEmpty();
     }
 
     @Test
     @DisplayName("@Size(max = 205) при varchar(200) в БД — ошибка")
-    void rejectsLengthMismatch() throws Exception {
+    void rejectsLengthMismatch() {
         List<String> mismatches = validator.mismatchesFor(List.of(new ExpectedColumn("gyms", "name", 205)));
 
         assertThat(mismatches).containsExactly("gyms.name: в сущности длина 205, в БД varchar(200)");

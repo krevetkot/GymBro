@@ -2,17 +2,18 @@ package ru.itmo.gymbro.identity.api;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.identity.model.User;
 
 public interface UserUseCases {
 
-    public User register(String email, String password);
+    public Mono<User> register(String email, String password);
 
-    public User getById(long id);
+    public Mono<User> getById(long id);
 
-    public Page<User> getPage(Pageable pageable);
+    public Mono<Page<User>> getPage(Pageable pageable);
 
-    public User update(long id, String newEmail, String newPassword);
+    public Mono<User> update(long id, String newEmail, String newPassword);
 
-    public void delete(long id);
+    public Mono<Void> delete(long id);
 }

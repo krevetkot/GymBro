@@ -1,35 +1,37 @@
 package ru.itmo.gymbro.shared.validation;
 
-import jakarta.persistence.EntityManagerFactory;
-import org.hibernate.engine.spi.SessionFactoryImplementor;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import jakarta.validation.constraints.Size;
+import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.springframework.data.r2dbc.mapping.R2dbcMappingContext;
+import org.springframework.data.relational.core.mapping.RelationalPersistentEntity;
+import org.springframework.data.relational.core.mapping.RelationalPersistentProperty;
+import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Component;
 
-import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 
+/**
+ * При старте сверяет {@code @Size(max)} строковых полей сущностей с длиной varchar-колонок в БД:
+ * расхождение значит, что валидация на уровне Entity и схема из миграций разошлись.
+ * Проверка идёт после создания всех бинов, то есть уже после миграций Liquibase.
+ */
 @Component
-@ConditionalOnProperty(name = "spring.jpa.hibernate.ddl-auto", havingValue = "validate")
-class ColumnLengthValidator implements InitializingBean {
+class ColumnLengthValidator implements SmartInitializingSingleton {
 
-    private final EntityManagerFactory entityManagerFactory;
-    private final DataSource dataSource;
+    private final R2dbcMappingContext mappingContext;
+    private final DatabaseClient database;
 
-    public ColumnLengthValidator(EntityManagerFactory entityManagerFactory, DataSource dataSource) {
-        this.entityManagerFactory = entityManagerFactory;
-        this.dataSource = dataSource;
+    ColumnLengthValidator(R2dbcMappingContext mappingContext, DatabaseClient database) {
+        this.mappingContext = mappingContext;
+        this.database = database;
     }
 
     @Override
-    public void afterPropertiesSet() throws SQLException {
+    public void afterSingletonsInstantiated() {
         List<String> mismatches = mismatchesFor(expectedColumns());
         if (!mismatches.isEmpty()) {
             throw new IllegalStateException("Длины колонок в БД не совпадают с сущностями:\n  - "
@@ -39,37 +41,35 @@ class ColumnLengthValidator implements InitializingBean {
 
     List<ExpectedColumn> expectedColumns() {
         List<ExpectedColumn> columns = new ArrayList<>();
-        entityManagerFactory.unwrap(SessionFactoryImplementor.class)
-                .getMappingMetamodel()
-                .forEachEntityDescriptor(entity -> entity.forEachSelectable((index, selectable) -> {
-                    Long length = selectable.getLength();
-                    Class<?> javaType = selectable.getJdbcMapping().getJavaTypeDescriptor().getJavaTypeClass();
-                    if (length != null && javaType == String.class) {
-                        columns.add(new ExpectedColumn(
-                                selectable.getContainingTableExpression(),
-                                selectable.getSelectionExpression(),
-                                length));
-                    }
-                }));
+        for (RelationalPersistentEntity<?> entity : mappingContext.getPersistentEntities()) {
+            for (RelationalPersistentProperty property : entity) {
+                Size size = property.findAnnotation(Size.class);
+                if (size != null && property.getType() == String.class) {
+                    columns.add(new ExpectedColumn(entity.getTableName().getReference(),
+                            property.getColumnName().getReference(), size.max()));
+                }
+            }
+        }
         return columns;
     }
 
-    List<String> mismatchesFor(Collection<ExpectedColumn> expected) throws SQLException {
+    List<String> mismatchesFor(Collection<ExpectedColumn> expected) {
+        Map<String, Integer> actualLengths = database.sql("""
+                        SELECT table_name, column_name, character_maximum_length
+                        FROM information_schema.columns
+                        WHERE table_schema = current_schema() AND data_type = 'character varying'
+                        """)
+                .map(row -> Map.entry(row.get("table_name", String.class) + "." + row.get("column_name", String.class),
+                        row.get("character_maximum_length", Integer.class)))
+                .all()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
+                .block();
         List<String> mismatches = new ArrayList<>();
-        try (Connection connection = dataSource.getConnection()) {
-            DatabaseMetaData metaData = connection.getMetaData();
-            String schema = connection.getSchema();
-            for (ExpectedColumn column : expected) {
-                try (ResultSet rows = metaData.getColumns(null, schema, column.table, column.name)) {
-                    if (!rows.next() || !"varchar".equals(rows.getString("TYPE_NAME").toLowerCase(Locale.ROOT))) {
-                        continue;
-                    }
-                    int actualLength = rows.getInt("COLUMN_SIZE");
-                    if (actualLength != column.length) {
-                        mismatches.add(column.table + "." + column.name + ": в сущности длина " + column.length
-                                + ", в БД varchar(" + actualLength + ")");
-                    }
-                }
+        for (ExpectedColumn column : expected) {
+            Integer actualLength = actualLengths.get(column.table + "." + column.name);
+            if (actualLength != null && actualLength != column.length) {
+                mismatches.add(column.table + "." + column.name + ": в сущности длина " + column.length
+                        + ", в БД varchar(" + actualLength + ")");
             }
         }
         return mismatches;

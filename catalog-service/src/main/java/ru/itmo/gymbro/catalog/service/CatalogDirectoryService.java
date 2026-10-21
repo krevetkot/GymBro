@@ -1,17 +1,14 @@
 package ru.itmo.gymbro.catalog.service;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.catalog.api.CatalogDirectory;
 import ru.itmo.gymbro.catalog.api.GymSnapshot;
 import ru.itmo.gymbro.catalog.api.GymUseCases;
 import ru.itmo.gymbro.catalog.api.SportSnapshot;
 import ru.itmo.gymbro.catalog.api.SportUseCases;
-import ru.itmo.gymbro.catalog.model.Gym;
-import ru.itmo.gymbro.catalog.model.Sport;
 
 @Service
-@Transactional(readOnly = true)
 class CatalogDirectoryService implements CatalogDirectory {
 
     private final SportUseCases sports;
@@ -23,14 +20,13 @@ class CatalogDirectoryService implements CatalogDirectory {
     }
 
     @Override
-    public SportSnapshot getSport(long id) {
-        Sport sport = sports.getById(id);
-        return new SportSnapshot(sport.getId(), sport.getName());
+    public Mono<SportSnapshot> getSport(long id) {
+        return sports.getById(id).map(sport -> new SportSnapshot(sport.getId(), sport.getName()));
     }
 
     @Override
-    public GymSnapshot getGym(long id) {
-        Gym gym = gyms.getById(id);
-        return new GymSnapshot(gym.getId(), gym.getName(), gym.getCity(), gym.getAddress());
+    public Mono<GymSnapshot> getGym(long id) {
+        return gyms.getById(id)
+                .map(gym -> new GymSnapshot(gym.getId(), gym.getName(), gym.getCity(), gym.getAddress()));
     }
 }
