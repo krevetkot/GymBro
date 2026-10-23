@@ -1,11 +1,13 @@
 package ru.itmo.gymbro.identity.dto;
 
+import lombok.Getter;
 import ru.itmo.gymbro.identity.model.Role;
 import ru.itmo.gymbro.identity.model.User;
 import ru.itmo.gymbro.identity.model.UserStatus;
 
 import java.time.Instant;
 
+@Getter
 public class UserResponse {
 
     private final long id;
@@ -24,25 +26,5 @@ public class UserResponse {
 
     public static UserResponse from(User user) {
         return new UserResponse(user.getId(), user.getEmail(), user.getRole(), user.getStatus(), user.getCreatedAt());
-    }
-
-    public long getId() {
-        return id;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public UserStatus getStatus() {
-        return status;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
     }
 }

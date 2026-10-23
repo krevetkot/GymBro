@@ -10,11 +10,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Анкеты для интеграционных тестов мэтчинга вместо profile-service.
- * Отдаёт кандидатов по возрастанию userId: порядок ленты по пересечению видов спорта и залов
- * — забота profile-service и проверяется там. Подменяет {@code RemoteProfileDirectory}.
- */
 public class TestProfiles implements ProfileDirectory {
 
     private final Map<Long, ProfileSnapshot> profiles = new ConcurrentHashMap<>();

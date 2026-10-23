@@ -14,16 +14,11 @@ class WebFluxConfiguration implements WebFluxConfigurer {
     static final int DEFAULT_PAGE_SIZE = 20;
     static final int MAX_PAGE_SIZE = 50;
 
-    /** Кладёт текущий запрос в контекст Reactor: оттуда {@link HeaderCurrentUserProvider} читает X-User-Id. */
     @Bean
     ServerWebExchangeContextFilter serverWebExchangeContextFilter() {
         return new ServerWebExchangeContextFilter();
     }
 
-    /**
-     * Pageable в параметрах WebFlux-контроллеров. Свойства spring.data.web.pageable действуют только
-     * для Spring MVC, поэтому размер по умолчанию и максимум (не больше 50 записей) задаются здесь.
-     */
     @Override
     public void configureArgumentResolvers(ArgumentResolverConfigurer configurer) {
         configurer.addCustomResolver(pageableResolver());

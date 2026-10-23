@@ -30,7 +30,6 @@ final class CatalogPagination {
         return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
     }
 
-    /** Страница с общим количеством: записи и COUNT(*) запрашиваются параллельно. */
     static <T> Mono<Page<T>> page(Pageable pageable, Set<String> allowedProperties,
                                   Function<Pageable, Flux<T>> content, Mono<Long> total) {
         return Mono.defer(() -> {

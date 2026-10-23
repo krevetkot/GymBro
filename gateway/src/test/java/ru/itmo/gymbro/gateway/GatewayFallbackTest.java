@@ -10,10 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-/**
- * Настоящий gateway на случайном порту. Eureka в тестах выключена, поэтому ни у одного сервиса
- * нет экземпляров: запрос проходит маршрут, падает в Circuit Breaker и получает ответ /fallback.
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class GatewayFallbackTest {
 

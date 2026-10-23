@@ -30,10 +30,6 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Настоящий Feign-клиент против WireMock вместо identity-service:
- * проверяется HTTP-контракт и перевод ошибок соседа в доменные исключения.
- */
 class RemoteUserDirectoryTest extends AbstractIntegrationTest {
 
     private static final WireMockServer IDENTITY = new WireMockServer(options().dynamicPort());
@@ -52,11 +48,9 @@ class RemoteUserDirectoryTest extends AbstractIntegrationTest {
         registry.add("spring.cloud.openfeign.client.config.identity-service.read-timeout", () -> 1_000);
     }
 
-    /** Первый запрос к только что запущенному WireMock обрабатывается дольше таймаута клиента. */
     private static void warmUp() {
         IDENTITY.stubFor(get(urlEqualTo("/warm-up")).willReturn(okJson("{}")));
         try (InputStream ignored = URI.create(IDENTITY.baseUrl() + "/warm-up").toURL().openStream()) {
-            // ответ не нужен, важно прогреть обработку запросов
         } catch (IOException exception) {
             throw new UncheckedIOException(exception);
         }

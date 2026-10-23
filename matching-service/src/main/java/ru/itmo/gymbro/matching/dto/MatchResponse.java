@@ -1,9 +1,11 @@
 package ru.itmo.gymbro.matching.dto;
 
+import lombok.Getter;
 import ru.itmo.gymbro.matching.model.Match;
 
 import java.time.Instant;
 
+@Getter
 public class MatchResponse {
 
     private final long matchId;
@@ -18,17 +20,5 @@ public class MatchResponse {
 
     public static MatchResponse of(Match match, long viewerUserId) {
         return new MatchResponse(match.getId(), match.partnerOf(viewerUserId), match.getCreatedAt());
-    }
-
-    public long getMatchId() {
-        return matchId;
-    }
-
-    public long getPartnerUserId() {
-        return partnerUserId;
-    }
-
-    public Instant getMatchedAt() {
-        return matchedAt;
     }
 }

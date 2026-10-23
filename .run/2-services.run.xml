@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="2. Services (4 сервиса + gateway)" type="CompoundRunConfigurationType">
+    <toRun name="identity-service" type="Application" />
+    <toRun name="catalog-service" type="Application" />
+    <toRun name="profile-service" type="Application" />
+    <toRun name="matching-service" type="Application" />
+    <toRun name="gateway" type="Application" />
+    <method v="2" />
+  </configuration>
+</component>

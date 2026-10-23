@@ -1,6 +1,8 @@
 package ru.itmo.gymbro.shared.validation;
 
 import jakarta.validation.constraints.Size;
+import lombok.AccessLevel;
+import lombok.Getter;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.data.r2dbc.mapping.R2dbcMappingContext;
 import org.springframework.data.relational.core.mapping.RelationalPersistentEntity;
@@ -14,11 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * При старте сверяет {@code @Size(max)} строковых полей сущностей с длиной varchar-колонок в БД:
- * расхождение значит, что валидация на уровне Entity и схема из миграций разошлись.
- * Проверка идёт после создания всех бинов, то есть уже после миграций Liquibase.
- */
 @Component
 class ColumnLengthValidator implements SmartInitializingSingleton {
 
@@ -75,6 +72,7 @@ class ColumnLengthValidator implements SmartInitializingSingleton {
         return mismatches;
     }
 
+    @Getter(AccessLevel.PACKAGE)
     static final class ExpectedColumn {
 
         private final String table;
@@ -85,18 +83,6 @@ class ColumnLengthValidator implements SmartInitializingSingleton {
             this.table = table;
             this.name = name;
             this.length = length;
-        }
-
-        String getTable() {
-            return table;
-        }
-
-        String getName() {
-            return name;
-        }
-
-        long getLength() {
-            return length;
         }
     }
 }

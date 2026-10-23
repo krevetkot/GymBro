@@ -45,11 +45,6 @@ class GymRequestService implements GymRequestUseCases {
                 requests::findAllBy, requests.count())));
     }
 
-    /**
-     * Транзакция №1: заявка блокируется (SELECT ... FOR UPDATE), проверяется адрес, создаётся зал
-     * и заявка переводится в APPROVED со ссылкой на него — всё или ничего. Права администратора
-     * проверяются до транзакции: вызов identity не должен держать подключение к базе.
-     */
     @Override
     public Mono<GymRequest> approve(long requestId) {
         return access.requireAdmin().flatMap(adminId -> pendingRequestForUpdate(requestId)

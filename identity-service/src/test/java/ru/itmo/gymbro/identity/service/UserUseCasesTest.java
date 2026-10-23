@@ -16,7 +16,6 @@ import ru.itmo.gymbro.shared.api.NotFoundException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Сценарии на Reactor поверх JPA: каждый Mono выполняет свою транзакцию на пуле для блокирующих задач. */
 class UserUseCasesTest extends AbstractIntegrationTest {
 
     @Autowired

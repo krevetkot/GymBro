@@ -10,11 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-/**
- * Пользователи для интеграционных тестов монолита вместо identity-service.
- * Подменяет {@code RemoteUserDirectory}: бизнес-тестам не нужен HTTP, а сам Feign-клиент
- * проверяется отдельно на WireMock.
- */
 public class TestUsers implements UserDirectory {
 
     private final AtomicLong ids = new AtomicLong(1_000);

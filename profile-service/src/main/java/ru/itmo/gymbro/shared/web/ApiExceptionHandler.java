@@ -81,7 +81,7 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     ProblemDetail handleUnexpected(Exception exception) {
-        logger.error("Необработанная ошибка", exception);
+        logger.error("Unhandled error", exception);
         return problem(HttpStatus.INTERNAL_SERVER_ERROR, "Внутренняя ошибка сервера",
                 "Что-то пошло не так. Попробуйте повторить запрос позже");
     }

@@ -9,10 +9,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * Виды спорта и залы для интеграционных тестов анкет вместо catalog-service.
- * Подменяет {@code RemoteCatalogDirectory}; сам Feign-клиент проверяется отдельно на WireMock.
- */
 public class TestCatalog implements CatalogDirectory {
 
     private final AtomicLong ids = new AtomicLong(1_000);

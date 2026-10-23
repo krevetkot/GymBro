@@ -8,11 +8,6 @@ import ru.itmo.gymbro.profile.api.FeedCandidates;
 
 import java.util.List;
 
-/**
- * Лента деградирует мягко: если сервис анкет упал, не ответил вовремя или Circuit Breaker
- * приостановил запросы к нему, пользователь получает пустую страницу вместо ошибки.
- * Ответы 4xx — не сбой сервиса (например, 404 «нет своей анкеты»), они пробрасываются как есть.
- */
 @Slf4j
 @Component
 class ProfileClientFallback implements FallbackFactory<ProfileClient> {
@@ -23,7 +18,7 @@ class ProfileClientFallback implements FallbackFactory<ProfileClient> {
             if (cause instanceof FeignException.FeignClientException clientError) {
                 throw clientError;
             }
-            log.warn("Сервис анкет недоступен, лента для пользователя {} отдана пустой: {}", viewerUserId, cause.toString());
+            log.warn("Profile service unavailable, returning empty feed for user {}: {}", viewerUserId, cause.toString());
             return new FeedCandidates(List.of(), page, size, false);
         };
     }

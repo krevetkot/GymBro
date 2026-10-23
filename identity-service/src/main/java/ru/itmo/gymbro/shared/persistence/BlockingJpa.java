@@ -8,13 +8,6 @@ import reactor.core.scheduler.Schedulers;
 
 import java.util.function.Supplier;
 
-/**
- * Reactor поверх Spring Data JPA. JPA блокирует поток на время запроса к базе, а потоков event loop
- * у WebFlux мало, поэтому работа с репозиториями уходит на {@link Schedulers#boundedElastic()} —
- * пул для блокирующих задач. Транзакция открывается там же через {@link TransactionTemplate}:
- * {@code @Transactional} на методах, возвращающих {@code Mono}, искал бы реактивный менеджер
- * транзакций, а у JPA его нет.
- */
 @Component
 public class BlockingJpa {
 
@@ -27,12 +20,10 @@ public class BlockingJpa {
         this.readOnly.setReadOnly(true);
     }
 
-    /** Чтение в read-only транзакции; {@code null} от работы — пустой {@code Mono}. */
     public <T> Mono<T> read(Supplier<T> work) {
         return run(readOnly, work);
     }
 
-    /** Изменение в транзакции: исключение внутри работы откатывает её целиком. */
     public <T> Mono<T> write(Supplier<T> work) {
         return run(readWrite, work);
     }

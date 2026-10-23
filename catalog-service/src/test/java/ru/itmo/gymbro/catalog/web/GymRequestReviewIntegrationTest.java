@@ -31,10 +31,6 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mockingDetails;
 
-/**
- * Транзакция одобрения заявки на реальной базе: каждое HTTP-действие коммитится или откатывается само,
- * проверки смотрят на итоговое состояние таблиц.
- */
 class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
@@ -90,7 +86,6 @@ class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
 
         review(requestId, "approve").expectStatus().is5xxServerError();
 
-        // INSERT зала уже прошёл; сбой следующего сохранения должен откатить и его.
         GymRequest request = requests.findById(requestId).block();
         assertThat(request.getStatus()).isEqualTo(RequestStatus.PENDING);
         assertThat(request.getReviewedBy()).isNull();
@@ -103,10 +98,8 @@ class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
     @SuppressWarnings("unchecked")
     void rollsBackPersistedDecisionAndAllowsRetry(String operation) {
         AtomicBoolean decisionWritten = new AtomicBoolean();
-        // spy поверх прокси репозитория: настоящий save — это ответ spy по умолчанию
         Answer<?> realSave = mockingDetails(requests).getMockCreationSettings().getDefaultAnswer();
         doAnswer(invocation -> ((Mono<GymRequest>) realSave.answer(invocation))
-                // запрос идёт в той же транзакции и видит ещё не закоммиченное решение
                 .flatMap(saved -> database.sql("SELECT status FROM gym_requests WHERE id = :id")
                         .bind("id", requestId)
                         .map(row -> row.get("status", String.class))

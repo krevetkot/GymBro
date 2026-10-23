@@ -1,6 +1,5 @@
 spring:
 
-  # Приложение ходит в базу через R2DBC (неблокирующий драйвер)
   r2dbc:
     url: ${CATALOG_R2DBC_URL:r2dbc:postgresql://localhost:5435/gymbro_catalog}
     username: ${CATALOG_DB_USER:gymbro_catalog}
@@ -8,7 +7,6 @@ spring:
     pool:
       max-size: ${CATALOG_DB_POOL_SIZE:10}
 
-  # Liquibase умеет только JDBC: миграции идут отдельным подключением при старте
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
     url: ${CATALOG_DB_URL:jdbc:postgresql://localhost:5435/gymbro_catalog}
@@ -27,10 +25,6 @@ logging:
     org.springframework.r2dbc.core: ${SQL_LOG_LEVEL:INFO}
     liquibase: INFO
 
-# Circuit Breaker на Feign-клиентах (одинаково в catalog-, profile- и matching-service; в общий
-# application.yml не вынесено: его читает gateway, у которого нет классов Feign).
-# Автомат размыкается, если из последних 10 вызовов соседа (не меньше 5) половина — сбои;
-# через 10 секунд пропускает 2 пробных вызова. Ответы 4xx — не сбой соседа и автомат не размыкают.
 spring.cloud.openfeign.circuitbreaker.enabled: true
 
 resilience4j:
@@ -49,5 +43,4 @@ resilience4j:
   timelimiter:
     configs:
       default:
-        # больше readTimeout Feign (3 с), чтобы медленный ответ обрывал Feign, а не таймер автомата
         timeout-duration: 4s

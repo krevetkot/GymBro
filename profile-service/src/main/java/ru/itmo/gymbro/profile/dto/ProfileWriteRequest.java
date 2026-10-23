@@ -7,8 +7,10 @@ import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
+import lombok.Getter;
 
 @Schema(example = "{\"name\":\"Алексей\",\"birthDate\":\"2000-05-15\",\"about\":\"Ищу партнёра для тренировок\"}")
+@Getter
 public class ProfileWriteRequest {
 
     @NotBlank
@@ -21,16 +23,4 @@ public class ProfileWriteRequest {
 
     @Size(max = 1000)
     private String about;
-
-    public String getName() {
-        return name;
-    }
-
-    public LocalDate getBirthDate() {
-        return birthDate;
-    }
-
-    public String getAbout() {
-        return about;
-    }
 }

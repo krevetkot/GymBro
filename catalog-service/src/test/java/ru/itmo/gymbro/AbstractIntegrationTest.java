@@ -17,10 +17,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.time.Duration;
 
-/**
- * Каталог на R2DBC: транзакционный откат после теста (как с JPA) здесь не работает, поэтому
- * данные тестов удаляются явно. Справочник видов спорта из миграции остаётся.
- */
 @SpringBootTest
 @Import(AbstractIntegrationTest.IdentityReplacement.class)
 public abstract class AbstractIntegrationTest {

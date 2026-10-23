@@ -1,6 +1,3 @@
-# Наружу открыты только /api/** и Swagger. Пути /internal/** не маршрутизируются:
-# их вызывают сервисы друг у друга напрямую, через Eureka.
-
 server:
   port: ${GATEWAY_PORT:8080}
 
@@ -71,9 +68,6 @@ spring:
               filters:
                 - StripPrefix=1
 
-# Свой автомат на каждый сервис: если сервис не отвечает или его нет в Eureka, gateway сразу
-# отдаёт 503 из /fallback/<сервис>, а не держит запросы до таймаута. Ответы самого сервиса
-# (в том числе его 4xx и 5xx) автомат пропускает как есть.
 resilience4j:
   circuitbreaker:
     configs:
@@ -89,7 +83,6 @@ resilience4j:
       default:
         timeout-duration: 10s
 
-# Общий Swagger: одна страница на gateway, документация каждого сервиса — через его маршрут.
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

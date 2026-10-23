@@ -10,20 +10,11 @@ import ru.itmo.gymbro.shared.api.UnauthorizedException;
 
 import java.util.function.Supplier;
 
-/**
- * Вызов соседнего сервиса через Feign под Circuit Breaker: ошибки клиента (4xx) превращаются
- * в доменные исключения, а 5xx, таймауты, обрывы, пустые ответы и открытый автомат —
- * в {@link DependencyUnavailableException} (503).
- */
 public final class RemoteCalls {
 
     private RemoteCalls() {
     }
 
-    /**
-     * @param service  сервис в родительном падеже для текста ошибки: «пользователей», «каталога»
-     * @param notFound текст ошибки, если сосед ответил 404
-     */
     public static <T> T call(String service, String notFound, Supplier<T> request) {
         T result;
         try {

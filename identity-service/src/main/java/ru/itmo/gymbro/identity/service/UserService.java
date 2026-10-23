@@ -21,10 +21,6 @@ import ru.itmo.gymbro.shared.persistence.BlockingJpa;
 
 import java.util.Set;
 
-/**
- * Сценарии пользователей на Reactor поверх Spring Data JPA: снаружи всё возвращает {@code Mono},
- * а каждое обращение к репозиторию выполняется через {@link BlockingJpa} на пуле для блокирующих задач.
- */
 @Service
 class UserService implements UserUseCases, UserDirectory, CurrentUserAccess {
 

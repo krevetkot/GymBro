@@ -11,11 +11,6 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * Запросы через WebTestClient выполняются на потоках Reactor и коммитятся сами, поэтому
- * откат тестовой транзакции их не покрывает: данные тестов удаляются явно, остаётся
- * только администратор из миграции.
- */
 @SpringBootTest
 public abstract class AbstractIntegrationTest {
 

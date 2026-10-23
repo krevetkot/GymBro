@@ -11,7 +11,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.Set;
 
-/** Валидация на уровне Entity: аннотации Jakarta Validation проверяются перед каждой записью через R2DBC. */
 @Component
 class EntityValidationCallback implements BeforeConvertCallback<Object> {
 

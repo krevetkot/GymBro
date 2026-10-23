@@ -122,7 +122,6 @@ class ProfileAggregateIntegrationTest extends AbstractIntegrationTest {
         changed.replaceGyms(List.of());
         changed.replaceSports(List.of(UserSport.of(Long.MAX_VALUE, SportLevel.ADVANCED)));
 
-        // Внешнего ключа на sports в базе анкет нет: сбой на дочерней строке имитирует временный CHECK.
         jdbc.execute("ALTER TABLE user_sports ADD CONSTRAINT test_reject_sport CHECK (sport_id <> "
                 + Long.MAX_VALUE + ") NOT VALID");
         try {

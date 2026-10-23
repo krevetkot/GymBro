@@ -1,7 +1,3 @@
-# syntax=docker/dockerfile:1
-
-# Сборка в образе с уже установленным Gradle той же версии, что и в wrapper: семь сервисов
-# собираются параллельно, и скачивание дистрибутива Gradle в каждом из них обрывалось.
 FROM gradle:8.14.3-jdk21-alpine AS build
 WORKDIR /app
 
@@ -17,7 +13,6 @@ COPY profile-service/build.gradle profile-service/
 COPY matching-service/build.gradle matching-service/
 COPY ${SERVICE}/src ${SERVICE}/src
 
-# Кеш зависимостей общий для сборок всех сервисов и между запусками: библиотеки скачиваются один раз
 RUN --mount=type=cache,target=/home/gradle/.gradle \
     gradle --no-daemon :${SERVICE}:bootJar -x test
 

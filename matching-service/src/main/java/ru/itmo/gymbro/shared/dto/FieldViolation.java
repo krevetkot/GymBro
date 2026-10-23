@@ -1,5 +1,8 @@
 package ru.itmo.gymbro.shared.dto;
 
+import lombok.Getter;
+
+@Getter
 public class FieldViolation {
 
     private final String field;
@@ -8,13 +11,5 @@ public class FieldViolation {
     public FieldViolation(String field, String message) {
         this.field = field;
         this.message = message;
-    }
-
-    public String getField() {
-        return field;
-    }
-
-    public String getMessage() {
-        return message;
     }
 }

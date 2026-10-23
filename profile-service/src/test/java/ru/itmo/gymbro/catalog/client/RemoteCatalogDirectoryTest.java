@@ -31,10 +31,6 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Настоящий Feign-клиент против WireMock вместо catalog-service:
- * проверяется HTTP-контракт внутренних эндпоинтов каталога и перевод его ошибок.
- */
 class RemoteCatalogDirectoryTest extends AbstractIntegrationTest {
 
     private static final WireMockServer CATALOG = new WireMockServer(options().dynamicPort());
@@ -52,11 +48,9 @@ class RemoteCatalogDirectoryTest extends AbstractIntegrationTest {
         registry.add("spring.cloud.openfeign.client.config.catalog-service.url", CATALOG::baseUrl);
     }
 
-    /** Первый запрос к только что запущенному WireMock обрабатывается дольше таймаута клиента. */
     private static void warmUp() {
         CATALOG.stubFor(get(urlEqualTo("/warm-up")).willReturn(okJson("{}")));
         try (InputStream ignored = URI.create(CATALOG.baseUrl() + "/warm-up").toURL().openStream()) {
-            // ответ не нужен, важно прогреть обработку запросов
         } catch (IOException exception) {
             throw new UncheckedIOException(exception);
         }

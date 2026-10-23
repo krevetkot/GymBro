@@ -35,10 +35,6 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Настоящий Feign-клиент против WireMock вместо profile-service:
- * проверяется, как лента запрашивается у сервиса анкет и как переводятся его ошибки.
- */
 class RemoteProfileDirectoryTest extends AbstractIntegrationTest {
 
     private static final String FEED = "/internal/v1/profiles/feed";
@@ -62,11 +58,9 @@ class RemoteProfileDirectoryTest extends AbstractIntegrationTest {
         registry.add("resilience4j.circuitbreaker.configs.default.wait-duration-in-open-state", () -> "1s");
     }
 
-    /** Первый запрос к только что запущенному WireMock обрабатывается дольше таймаута клиента. */
     private static void warmUp() {
         PROFILES.stubFor(get(urlEqualTo("/warm-up")).willReturn(okJson("{}")));
         try (InputStream ignored = URI.create(PROFILES.baseUrl() + "/warm-up").toURL().openStream()) {
-            // ответ не нужен, важно прогреть обработку запросов
         } catch (IOException exception) {
             throw new UncheckedIOException(exception);
         }

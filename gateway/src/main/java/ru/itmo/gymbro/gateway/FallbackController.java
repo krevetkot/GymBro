@@ -10,10 +10,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-/**
- * Ответ gateway, когда Circuit Breaker маршрута не пропустил запрос к сервису:
- * сервис не отвечает, не зарегистрирован в Eureka или после серии сбоев запросы к нему приостановлены.
- */
 @RestController
 class FallbackController {
 

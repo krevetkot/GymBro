@@ -2,9 +2,11 @@ package ru.itmo.gymbro.profile.dto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import lombok.Getter;
 import ru.itmo.gymbro.profile.model.SportLevel;
 import ru.itmo.gymbro.profile.model.UserSport;
 
+@Getter
 public class ProfileSportItem {
 
     @NotNull
@@ -19,14 +21,6 @@ public class ProfileSportItem {
         item.sportId = sport.getSportId();
         item.level = sport.getLevel();
         return item;
-    }
-
-    public Long getSportId() {
-        return sportId;
-    }
-
-    public SportLevel getLevel() {
-        return level;
     }
 
     public UserSport toUserSport() {

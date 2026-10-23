@@ -8,10 +8,6 @@ import ru.itmo.gymbro.shared.api.UnauthorizedException;
 
 import java.util.regex.Pattern;
 
-/**
- * Текущий пользователь из заголовка X-User-Id. В WebFlux запрос не привязан к потоку,
- * поэтому он берётся из контекста Reactor, куда его кладёт {@link ServerWebExchangeContextFilter}.
- */
 @Component
 class HeaderCurrentUserProvider implements CurrentUserProvider {
 

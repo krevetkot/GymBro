@@ -1,6 +1,8 @@
 package ru.itmo.gymbro.shared.validation;
 
 import jakarta.persistence.EntityManagerFactory;
+import lombok.AccessLevel;
+import lombok.Getter;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -75,6 +77,7 @@ class ColumnLengthValidator implements InitializingBean {
         return mismatches;
     }
 
+    @Getter(AccessLevel.PACKAGE)
     static final class ExpectedColumn {
 
         private final String table;
@@ -85,18 +88,6 @@ class ColumnLengthValidator implements InitializingBean {
             this.table = table;
             this.name = name;
             this.length = length;
-        }
-
-        String getTable() {
-            return table;
-        }
-
-        String getName() {
-            return name;
-        }
-
-        long getLength() {
-            return length;
         }
     }
 }

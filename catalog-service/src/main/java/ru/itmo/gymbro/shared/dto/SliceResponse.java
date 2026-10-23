@@ -1,9 +1,11 @@
 package ru.itmo.gymbro.shared.dto;
 
+import lombok.Getter;
 import org.springframework.data.domain.Slice;
 
 import java.util.List;
 
+@Getter
 public class SliceResponse<T> {
 
     private final List<T> items;
@@ -20,21 +22,5 @@ public class SliceResponse<T> {
 
     public static <T> SliceResponse<T> from(Slice<T> slice) {
         return new SliceResponse<>(slice.getContent(), slice.getNumber(), slice.getSize(), slice.hasNext());
-    }
-
-    public List<T> getItems() {
-        return items;
-    }
-
-    public int getPage() {
-        return page;
-    }
-
-    public int getSize() {
-        return size;
-    }
-
-    public boolean isHasNext() {
-        return hasNext;
     }
 }

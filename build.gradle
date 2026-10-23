@@ -46,7 +46,6 @@ subprojects {
         finalizedBy tasks.named('jacocoTestReport')
     }
 
-    // Классы запуска, конфигурация и DTO в покрытие не входят — и в отчёте, и в проверке порога
     def coverageExcludes = ['**/*Application.class', '**/config/**', '**/dto/**']
 
     jacocoTestReport {
@@ -62,7 +61,6 @@ subprojects {
         }
     }
 
-    // Порог из требований лабы 1: не меньше 70% инструкций в каждом модуле; проверяется в gradle check
     jacocoTestCoverageVerification {
         dependsOn tasks.named('test')
         afterEvaluate {

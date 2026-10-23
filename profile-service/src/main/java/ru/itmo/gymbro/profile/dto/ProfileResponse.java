@@ -1,5 +1,6 @@
 package ru.itmo.gymbro.profile.dto;
 
+import lombok.Getter;
 import ru.itmo.gymbro.profile.model.UserGym;
 import ru.itmo.gymbro.profile.model.UserProfile;
 
@@ -7,6 +8,7 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 
+@Getter
 public class ProfileResponse {
 
     private final long userId;
@@ -43,33 +45,5 @@ public class ProfileResponse {
                         .sorted()
                         .toList(),
                 profile.getUpdatedAt());
-    }
-
-    public long getUserId() {
-        return userId;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public int getAge() {
-        return age;
-    }
-
-    public String getAbout() {
-        return about;
-    }
-
-    public List<ProfileSportItem> getSports() {
-        return sports;
-    }
-
-    public List<Long> getGymIds() {
-        return gymIds;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
     }
 }

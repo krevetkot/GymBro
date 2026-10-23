@@ -9,7 +9,6 @@ import ru.itmo.gymbro.catalog.model.GymRequest;
 
 public interface GymRequestRepository extends R2dbcRepository<GymRequest, Long> {
 
-    /** Блокирует строку заявки до конца транзакции: одобрить или отклонить её может только один запрос. */
     @Query("SELECT * FROM gym_requests WHERE id = :id FOR UPDATE")
     public Mono<GymRequest> findByIdForUpdate(long id);
 

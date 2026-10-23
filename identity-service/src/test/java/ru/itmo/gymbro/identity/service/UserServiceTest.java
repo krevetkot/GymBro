@@ -24,7 +24,6 @@ class UserServiceTest {
 
     private final CurrentUserProvider currentUser = mock(CurrentUserProvider.class);
     private final UserRepository users = mock(UserRepository.class);
-    // менеджер транзакций-заглушка: TransactionTemplate просто выполняет работу
     private final UserService service = new UserService(users, currentUser,
             new BlockingJpa(mock(PlatformTransactionManager.class)));
 

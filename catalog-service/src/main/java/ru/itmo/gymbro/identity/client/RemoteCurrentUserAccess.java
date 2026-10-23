@@ -36,8 +36,6 @@ class RemoteCurrentUserAccess implements CurrentUserAccess {
 
     private Mono<UserSnapshot> activeCurrentUser() {
         return currentUser.currentUserId()
-                // Feign блокирующий: вызов identity уходит на пул для блокирующих задач,
-                // чтобы не занимать потоки event loop
                 .flatMap(id -> Mono.fromCallable(() -> users.getSnapshot(id))
                         .subscribeOn(Schedulers.boundedElastic())
                         .onErrorMap(NotFoundException.class,

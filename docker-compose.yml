@@ -8,7 +8,6 @@ x-cloud-env: &cloud-env
   EUREKA_URL: http://eureka-server:8761/eureka/
   SQL_LOG_LEVEL: ${SQL_LOG_LEVEL:-INFO}
 
-# У каждого сервиса своя база в своём контейнере PostgreSQL.
 services:
   identity-db:
     image: postgres:17-alpine

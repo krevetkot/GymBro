@@ -1,9 +1,11 @@
 package ru.itmo.gymbro.matching.dto;
 
+import lombok.Getter;
 import ru.itmo.gymbro.profile.api.ProfileSnapshot;
 
 import java.util.List;
 
+@Getter
 public class FeedCardResponse {
 
     private final long userId;
@@ -31,29 +33,5 @@ public class FeedCardResponse {
                 profile.about(),
                 profile.sportIds(),
                 profile.gymIds());
-    }
-
-    public long getUserId() {
-        return userId;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public int getAge() {
-        return age;
-    }
-
-    public String getAbout() {
-        return about;
-    }
-
-    public List<Long> getSportIds() {
-        return sportIds;
-    }
-
-    public List<Long> getGymIds() {
-        return gymIds;
     }
 }

@@ -22,10 +22,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Лента со стороны matching-service: кого исключить и как отдать срез.
- * Подбор и порядок анкет делает profile-service, здесь его заменяет {@code TestProfiles}.
- */
 class FeedApiIntegrationTest extends AbstractIntegrationTest {
 
     private static final String FEED = "/api/v1/feed";

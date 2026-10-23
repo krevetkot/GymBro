@@ -26,7 +26,6 @@ import ru.itmo.gymbro.shared.dto.FieldViolation;
 
 import java.util.List;
 
-/** Ошибки WebFlux-контроллеров в формате ProblemDetail, с теми же текстами, что и в MVC-сервисах. */
 @RestControllerAdvice
 class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
@@ -84,7 +83,7 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     ProblemDetail handleUnexpected(Exception exception) {
-        logger.error("Необработанная ошибка", exception);
+        logger.error("Unhandled error", exception);
         return problem(HttpStatus.INTERNAL_SERVER_ERROR, "Внутренняя ошибка сервера",
                 "Что-то пошло не так. Попробуйте повторить запрос позже");
     }
@@ -111,7 +110,6 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(exception, invalidFields(status, violations), headers, status, exchange);
     }
 
-    /** Битый JSON, неверный тип поля, параметра или переменной пути. */
     @Override
     protected Mono<ResponseEntity<Object>> handleServerWebInputException(
             ServerWebInputException exception, HttpHeaders headers,

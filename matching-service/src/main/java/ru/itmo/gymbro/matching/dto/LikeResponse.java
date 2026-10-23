@@ -1,10 +1,12 @@
 package ru.itmo.gymbro.matching.dto;
 
+import lombok.Getter;
 import ru.itmo.gymbro.matching.model.Like;
 import ru.itmo.gymbro.matching.model.Match;
 
 import java.time.Instant;
 
+@Getter
 public class LikeResponse {
 
     private final long toUserId;
@@ -25,21 +27,5 @@ public class LikeResponse {
 
     public static LikeResponse matched(Like like, Match match) {
         return new LikeResponse(like.getToUserId(), like.getCreatedAt(), true, match.getId());
-    }
-
-    public long getToUserId() {
-        return toUserId;
-    }
-
-    public Instant getLikedAt() {
-        return likedAt;
-    }
-
-    public boolean isMatched() {
-        return matched;
-    }
-
-    public Long getMatchId() {
-        return matchId;
     }
 }
