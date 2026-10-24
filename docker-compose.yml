@@ -76,7 +76,7 @@ services:
         SERVICE: config-server
     container_name: gymbro-config-server
     environment:
-      CONFIG_REPO: file:/config-repo/
+      CONFIG_REPO: file:/config-repo/,file:/config-repo/{application}/
     volumes:
       - ./config-repo:/config-repo:ro
     healthcheck:

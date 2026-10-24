@@ -3,34 +3,28 @@ package ru.itmo.gymbro.shared.client;
 import feign.FeignException;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.springframework.cloud.client.circuitbreaker.NoFallbackAvailableException;
+import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.shared.api.DependencyUnavailableException;
 import ru.itmo.gymbro.shared.api.ForbiddenException;
 import ru.itmo.gymbro.shared.api.NotFoundException;
 import ru.itmo.gymbro.shared.api.UnauthorizedException;
-
-import java.util.function.Supplier;
 
 public final class RemoteCalls {
 
     private RemoteCalls() {
     }
 
-    public static <T> T call(String service, String notFound, Supplier<T> request) {
-        T result;
-        try {
-            result = request.get();
-        } catch (NoFallbackAvailableException exception) {
-            throw translate(service, notFound, exception.getCause());
-        } catch (FeignException exception) {
-            throw translate(service, notFound, exception);
-        }
-        if (result == null) {
-            throw new DependencyUnavailableException("Сервис " + service + " вернул пустой ответ");
-        }
-        return result;
+    public static <T> Mono<T> call(String service, String notFound, Mono<T> request) {
+        return request
+                .switchIfEmpty(Mono.error(() -> new DependencyUnavailableException("Сервис " + service + " вернул пустой ответ")))
+                .onErrorMap(failure -> !(failure instanceof DependencyUnavailableException),
+                        failure -> translate(service, notFound, failure));
     }
 
     private static RuntimeException translate(String service, String notFound, Throwable failure) {
+        if (failure instanceof NoFallbackAvailableException wrapped && wrapped.getCause() != null) {
+            return translate(service, notFound, wrapped.getCause());
+        }
         if (failure instanceof CallNotPermittedException) {
             return new DependencyUnavailableException("Сервис " + service
                     + " временно недоступен: после серии ошибок запросы к нему приостановлены", failure);

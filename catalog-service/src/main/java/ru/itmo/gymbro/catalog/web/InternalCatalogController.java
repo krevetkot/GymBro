@@ -2,6 +2,7 @@ package ru.itmo.gymbro.catalog.web;
 
 import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.validation.constraints.Positive;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,13 +15,10 @@ import ru.itmo.gymbro.catalog.api.SportSnapshot;
 @Hidden
 @RestController
 @RequestMapping("/internal/v1/catalog")
+@RequiredArgsConstructor
 class InternalCatalogController {
 
     private final CatalogDirectory catalog;
-
-    InternalCatalogController(CatalogDirectory catalog) {
-        this.catalog = catalog;
-    }
 
     @GetMapping("/sports/{id}")
     Mono<SportSnapshot> getSport(@PathVariable @Positive long id) {

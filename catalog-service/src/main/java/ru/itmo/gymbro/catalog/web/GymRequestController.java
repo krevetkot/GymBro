@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
+import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -36,13 +37,10 @@ import java.util.List;
 @ApiResponse(responseCode = "400", description = "Некорректные поля или параметры")
 @ApiResponse(responseCode = "401", description = "Нет корректного X-User-Id или пользователь не существует")
 @ApiResponse(responseCode = "403", description = "Пользователь заблокирован или недостаточно прав")
+@RequiredArgsConstructor
 class GymRequestController {
 
     private final GymRequestUseCases requests;
-
-    public GymRequestController(GymRequestUseCases requests) {
-        this.requests = requests;
-    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

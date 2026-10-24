@@ -1,5 +1,6 @@
 package ru.itmo.gymbro.profile.service;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import java.util.Set;
 
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 class ProfileService implements ProfileUseCases, ProfileDirectory {
 
     private static final String FILL_PROFILE_FIRST = "Сначала заполните анкету через PUT /api/v1/profiles/me";
@@ -32,13 +34,6 @@ class ProfileService implements ProfileUseCases, ProfileDirectory {
     private final UserProfileRepository profiles;
     private final CurrentUserAccess access;
     private final CatalogDirectory catalog;
-
-    public ProfileService(UserProfileRepository profiles, CurrentUserAccess access,
-                          CatalogDirectory catalog) {
-        this.profiles = profiles;
-        this.access = access;
-        this.catalog = catalog;
-    }
 
     @Override
     public UserProfile getByUserId(long userId) {

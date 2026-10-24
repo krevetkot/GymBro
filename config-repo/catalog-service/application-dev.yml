@@ -25,7 +25,19 @@ logging:
     org.springframework.r2dbc.core: ${SQL_LOG_LEVEL:INFO}
     liquibase: INFO
 
-spring.cloud.openfeign.circuitbreaker.enabled: true
+reactive:
+  feign:
+    circuit:
+      breaker:
+        enabled: true
+    loadbalancer:
+      enabled: true
+    client:
+      config:
+        default:
+          options:
+            connectTimeoutMillis: 2000
+            readTimeoutMillis: 3000
 
 resilience4j:
   circuitbreaker:

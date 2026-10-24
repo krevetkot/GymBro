@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,13 +30,10 @@ import java.net.URI;
 @Tag(name = "Анкеты", description = "Данные анкеты, выбранные виды спорта и залы")
 @ApiResponse(responseCode = "400", description = "Некорректные поля запроса")
 @ApiResponse(responseCode = "404", description = "Анкета или запись каталога не найдена")
+@RequiredArgsConstructor
 class ProfileController {
 
     private final ProfileUseCases profiles;
-
-    public ProfileController(ProfileUseCases profiles) {
-        this.profiles = profiles;
-    }
 
     @GetMapping("/{userId}")
     @Operation(summary = "Получить анкету по идентификатору пользователя")

@@ -1,5 +1,6 @@
 package ru.itmo.gymbro.identity.service;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,17 +23,12 @@ import ru.itmo.gymbro.shared.persistence.BlockingJpa;
 import java.util.Set;
 
 @Service
+@RequiredArgsConstructor
 class UserService implements UserUseCases, UserDirectory, CurrentUserAccess {
 
     private final UserRepository users;
     private final CurrentUserProvider currentUser;
     private final BlockingJpa jpa;
-
-    public UserService(UserRepository users, CurrentUserProvider currentUser, BlockingJpa jpa) {
-        this.users = users;
-        this.currentUser = currentUser;
-        this.jpa = jpa;
-    }
 
     @Override
     public Mono<User> register(String email, String password) {

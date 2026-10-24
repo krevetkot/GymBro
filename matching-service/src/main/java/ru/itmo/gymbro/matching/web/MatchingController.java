@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -33,13 +34,10 @@ import java.util.List;
 @SecurityRequirement(name = "currentUser")
 @ApiResponse(responseCode = "401", description = "Текущий пользователь не определён")
 @ApiResponse(responseCode = "403", description = "Пользователь заблокирован")
+@RequiredArgsConstructor
 class MatchingController {
 
     private final MatchingUseCases matching;
-
-    public MatchingController(MatchingUseCases matching) {
-        this.matching = matching;
-    }
 
     @GetMapping("/feed")
     @Operation(summary = "Получить следующую страницу ленты",

@@ -6,7 +6,7 @@ spring:
   config:
     import:
       - file:../config-repo/application.yml
-      - file:../config-repo/catalog-service.yml
+      - file:../config-repo/catalog-service/application-dev.yml
 
   cloud:
     config:

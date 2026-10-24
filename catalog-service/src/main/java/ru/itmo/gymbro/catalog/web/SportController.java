@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
+import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -34,13 +35,10 @@ import java.util.List;
 @Tag(name = "Виды спорта")
 @SecurityRequirements
 @ApiResponse(responseCode = "400", description = "Некорректные поля или параметры запроса")
+@RequiredArgsConstructor
 class SportController {
 
     private final SportUseCases sports;
-
-    public SportController(SportUseCases sports) {
-        this.sports = sports;
-    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

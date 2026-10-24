@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.cloud.client.circuitbreaker.NoFallbackAvailableException;
+import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.shared.api.DependencyUnavailableException;
 import ru.itmo.gymbro.shared.api.ForbiddenException;
 import ru.itmo.gymbro.shared.api.NotFoundException;
@@ -29,13 +30,13 @@ class RemoteCallsTest {
     @Test
     @DisplayName("Успешный ответ соседа возвращается как есть")
     void returnsResult() {
-        assertThat(RemoteCalls.call(SERVICE, "не найдено", () -> "ответ")).isEqualTo("ответ");
+        assertThat(RemoteCalls.call(SERVICE, "не найдено", Mono.just("ответ")).block()).isEqualTo("ответ");
     }
 
     @Test
     @DisplayName("Пустой ответ соседа — сервис недоступен")
     void emptyResultMeansUnavailable() {
-        assertThatThrownBy(() -> RemoteCalls.call(SERVICE, "не найдено", () -> null))
+        assertThatThrownBy(() -> RemoteCalls.call(SERVICE, "не найдено", Mono.<String>empty()).block())
                 .isInstanceOf(DependencyUnavailableException.class)
                 .hasMessage("Сервис соседа вернул пустой ответ");
     }
@@ -50,28 +51,20 @@ class RemoteCallsTest {
             "503, ru.itmo.gymbro.shared.api.DependencyUnavailableException"})
     @DisplayName("Ответ соседа с ошибкой переводится в доменное исключение по статусу")
     void translatesStatus(int status, Class<? extends RuntimeException> expected) {
-        assertThatThrownBy(() -> RemoteCalls.call(SERVICE, "Запись не найдена", () -> {
-            throw feignError(status);
-        })).isInstanceOf(expected);
+        assertThatThrownBy(() -> RemoteCalls.call(SERVICE, "Запись не найдена", Mono.error(feignError(status))).block()).isInstanceOf(expected);
     }
 
     @Test
     @DisplayName("Для 404 используется текст ошибки вызывающего")
     void notFoundUsesCallerMessage() {
-        assertThatThrownBy(() -> RemoteCalls.call(SERVICE, "Вид спорта 5 не найден", () -> {
-            throw feignError(404);
-        })).isInstanceOf(NotFoundException.class).hasMessage("Вид спорта 5 не найден");
+        assertThatThrownBy(() -> RemoteCalls.call(SERVICE, "Вид спорта 5 не найден", Mono.error(feignError(404))).block()).isInstanceOf(NotFoundException.class).hasMessage("Вид спорта 5 не найден");
     }
 
     @Test
     @DisplayName("Ошибка, завёрнутая Circuit Breaker, разворачивается и переводится так же")
     void unwrapsCircuitBreakerFailure() {
-        assertThatThrownBy(() -> RemoteCalls.call(SERVICE, "Пользователь не найден", () -> {
-            throw new NoFallbackAvailableException("no fallback", feignError(404));
-        })).isInstanceOf(NotFoundException.class);
-        assertThatThrownBy(() -> RemoteCalls.call(SERVICE, "Пользователь не найден", () -> {
-            throw new NoFallbackAvailableException("no fallback", new TimeoutException("too slow"));
-        })).isInstanceOf(DependencyUnavailableException.class).hasMessage("Сервис соседа временно недоступен");
+        assertThatThrownBy(() -> RemoteCalls.call(SERVICE, "Пользователь не найден", Mono.error(new NoFallbackAvailableException("no fallback", feignError(404)))).block()).isInstanceOf(NotFoundException.class);
+        assertThatThrownBy(() -> RemoteCalls.call(SERVICE, "Пользователь не найден", Mono.error(new NoFallbackAvailableException("no fallback", new TimeoutException("too slow")))).block()).isInstanceOf(DependencyUnavailableException.class).hasMessage("Сервис соседа временно недоступен");
     }
 
     @Test
@@ -80,9 +73,7 @@ class RemoteCallsTest {
         CallNotPermittedException open =
                 CallNotPermittedException.createCallNotPermittedException(CircuitBreaker.ofDefaults("neighbour"));
 
-        assertThatThrownBy(() -> RemoteCalls.call(SERVICE, "не найдено", () -> {
-            throw new NoFallbackAvailableException("no fallback", open);
-        })).isInstanceOf(DependencyUnavailableException.class)
+        assertThatThrownBy(() -> RemoteCalls.call(SERVICE, "не найдено", Mono.error(new NoFallbackAvailableException("no fallback", open))).block()).isInstanceOf(DependencyUnavailableException.class)
                 .hasMessageContaining("запросы к нему приостановлены")
                 .hasCause(open);
     }
@@ -90,12 +81,8 @@ class RemoteCallsTest {
     @Test
     @DisplayName("Права и аутентификацию сосед проверяет сам: 401 и 403 не превращаются в 503")
     void keepsAuthErrors() {
-        assertThatThrownBy(() -> RemoteCalls.call(SERVICE, "не найдено", () -> {
-            throw feignError(401);
-        })).isInstanceOf(UnauthorizedException.class);
-        assertThatThrownBy(() -> RemoteCalls.call(SERVICE, "не найдено", () -> {
-            throw feignError(403);
-        })).isInstanceOf(ForbiddenException.class);
+        assertThatThrownBy(() -> RemoteCalls.call(SERVICE, "не найдено", Mono.error(feignError(401))).block()).isInstanceOf(UnauthorizedException.class);
+        assertThatThrownBy(() -> RemoteCalls.call(SERVICE, "не найдено", Mono.error(feignError(403))).block()).isInstanceOf(ForbiddenException.class);
     }
 
     private static FeignException feignError(int status) {

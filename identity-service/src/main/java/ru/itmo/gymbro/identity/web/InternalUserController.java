@@ -2,6 +2,7 @@ package ru.itmo.gymbro.identity.web;
 
 import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.validation.constraints.Positive;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,13 +16,10 @@ import java.util.Set;
 @Hidden
 @RestController
 @RequestMapping("/internal/v1/users")
+@RequiredArgsConstructor
 class InternalUserController {
 
     private final UserDirectory users;
-
-    public InternalUserController(UserDirectory users) {
-        this.users = users;
-    }
 
     @GetMapping("/{id}")
     Mono<UserSnapshot> getSnapshot(@PathVariable @Positive long id) {

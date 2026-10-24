@@ -1,5 +1,6 @@
 package ru.itmo.gymbro.matching.service;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +29,7 @@ import java.util.Set;
 
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 class MatchingService implements MatchingUseCases {
 
     private static final Sort NEWEST_FIRST = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
@@ -37,15 +39,6 @@ class MatchingService implements MatchingUseCases {
     private final ProfileDirectory profiles;
     private final LikeRepository likes;
     private final MatchRepository matches;
-
-    public MatchingService(CurrentUserAccess access, UserDirectory users, ProfileDirectory profiles,
-                           LikeRepository likes, MatchRepository matches) {
-        this.access = access;
-        this.users = users;
-        this.profiles = profiles;
-        this.likes = likes;
-        this.matches = matches;
-    }
 
     @Override
     public Slice<ProfileSnapshot> nextFeedCards(Pageable pageable) {

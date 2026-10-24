@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
+import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -34,13 +35,10 @@ import java.util.List;
 @RequestMapping("/api/v1/gyms")
 @Tag(name = "Залы")
 @ApiResponse(responseCode = "400", description = "Некорректные поля или параметры запроса")
+@RequiredArgsConstructor
 class GymController {
 
     private final GymUseCases gyms;
-
-    public GymController(GymUseCases gyms) {
-        this.gyms = gyms;
-    }
 
     @SecurityRequirements
     @PostMapping

@@ -1,5 +1,6 @@
 package ru.itmo.gymbro;
 
+import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.identity.api.UserDirectory;
 import ru.itmo.gymbro.identity.api.UserSnapshot;
 import ru.itmo.gymbro.shared.api.NotFoundException;
@@ -28,7 +29,7 @@ public class TestUsers implements UserDirectory {
     }
 
     public void ban(long id) {
-        UserSnapshot user = getSnapshot(id);
+        UserSnapshot user = snapshot(id);
         users.put(id, new UserSnapshot(id, false, user.admin()));
     }
 
@@ -37,7 +38,11 @@ public class TestUsers implements UserDirectory {
     }
 
     @Override
-    public UserSnapshot getSnapshot(long id) {
+    public Mono<UserSnapshot> getSnapshot(long id) {
+        return Mono.fromCallable(() -> snapshot(id));
+    }
+
+    private UserSnapshot snapshot(long id) {
         UserSnapshot user = users.get(id);
         if (user == null) {
             throw new NotFoundException("Пользователь не найден");
@@ -46,11 +51,11 @@ public class TestUsers implements UserDirectory {
     }
 
     @Override
-    public Set<Long> bannedUserIds() {
-        return users.values().stream()
+    public Mono<Set<Long>> bannedUserIds() {
+        return Mono.just(users.values().stream()
                 .filter(user -> !user.active())
                 .map(UserSnapshot::id)
-                .collect(Collectors.toUnmodifiableSet());
+                .collect(Collectors.toUnmodifiableSet()));
     }
 
     private long add(boolean active, boolean admin) {

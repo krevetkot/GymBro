@@ -3,6 +3,7 @@ package ru.itmo.gymbro.shared.validation;
 import jakarta.persistence.EntityManagerFactory;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -20,15 +21,11 @@ import java.util.Locale;
 
 @Component
 @ConditionalOnProperty(name = "spring.jpa.hibernate.ddl-auto", havingValue = "validate")
+@RequiredArgsConstructor
 class ColumnLengthValidator implements InitializingBean {
 
     private final EntityManagerFactory entityManagerFactory;
     private final DataSource dataSource;
-
-    public ColumnLengthValidator(EntityManagerFactory entityManagerFactory, DataSource dataSource) {
-        this.entityManagerFactory = entityManagerFactory;
-        this.dataSource = dataSource;
-    }
 
     @Override
     public void afterPropertiesSet() throws SQLException {

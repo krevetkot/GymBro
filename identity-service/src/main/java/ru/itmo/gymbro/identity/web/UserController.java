@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
+import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -34,13 +35,10 @@ import java.util.List;
 @Tag(name = "Пользователи", description = "Учётные записи. Ответы не содержат пароль.")
 @SecurityRequirements
 @ApiResponse(responseCode = "400", description = "Некорректные поля или параметры запроса")
+@RequiredArgsConstructor
 class UserController {
 
     private final UserUseCases users;
-
-    public UserController(UserUseCases users) {
-        this.users = users;
-    }
 
     @PostMapping
     @Operation(summary = "Зарегистрировать пользователя",

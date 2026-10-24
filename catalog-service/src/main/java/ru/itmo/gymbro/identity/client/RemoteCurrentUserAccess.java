@@ -1,8 +1,8 @@
 package ru.itmo.gymbro.identity.client;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 import ru.itmo.gymbro.identity.api.UserDirectory;
 import ru.itmo.gymbro.identity.api.UserSnapshot;
 import ru.itmo.gymbro.shared.api.CurrentUserAccess;
@@ -12,15 +12,11 @@ import ru.itmo.gymbro.shared.api.NotFoundException;
 import ru.itmo.gymbro.shared.api.UnauthorizedException;
 
 @Component
+@RequiredArgsConstructor
 class RemoteCurrentUserAccess implements CurrentUserAccess {
 
     private final CurrentUserProvider currentUser;
     private final UserDirectory users;
-
-    RemoteCurrentUserAccess(CurrentUserProvider currentUser, UserDirectory users) {
-        this.currentUser = currentUser;
-        this.users = users;
-    }
 
     @Override
     public Mono<Long> requireActiveUser() {
@@ -36,8 +32,7 @@ class RemoteCurrentUserAccess implements CurrentUserAccess {
 
     private Mono<UserSnapshot> activeCurrentUser() {
         return currentUser.currentUserId()
-                .flatMap(id -> Mono.fromCallable(() -> users.getSnapshot(id))
-                        .subscribeOn(Schedulers.boundedElastic())
+                .flatMap(id -> users.getSnapshot(id)
                         .onErrorMap(NotFoundException.class,
                                 missing -> new UnauthorizedException("Текущий пользователь не найден")))
                 .flatMap(user -> user.active()

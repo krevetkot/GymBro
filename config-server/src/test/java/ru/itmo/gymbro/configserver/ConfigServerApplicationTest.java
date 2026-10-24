@@ -19,20 +19,20 @@ class ConfigServerApplicationTest {
     private EnvironmentRepository repository;
 
     @Test
-    @DisplayName("Сервису отдаются его файл и общий application.yml из config-repo, свой файл важнее")
+    @DisplayName("Сервису с профилем dev отдаются его application-dev.yml из своей папки и общий application.yml, свой файл важнее")
     void servesServiceAndSharedConfig() {
-        Environment environment = repository.findOne("matching-service", "default", null);
+        Environment environment = repository.findOne("matching-service", "dev", null);
 
         List<String> sources = environment.getPropertySources().stream().map(PropertySource::getName).toList();
         assertThat(sources).hasSize(2);
-        assertThat(sources.get(0)).endsWith("matching-service.yml");
-        assertThat(sources.get(1)).endsWith("application.yml");
+        assertThat(sources.get(0)).contains("matching-service").contains("application-dev.yml");
+        assertThat(sources.get(1)).contains("application.yml").doesNotContain("matching-service");
     }
 
     @Test
     @DisplayName("Плейсхолдеры переменных окружения отдаются как есть и раскрываются на стороне сервиса")
     void keepsEnvironmentPlaceholders() {
-        Environment environment = repository.findOne("matching-service", "default", null);
+        Environment environment = repository.findOne("matching-service", "dev", null);
 
         Object url = environment.getPropertySources().getFirst().getSource().get("spring.datasource.url");
         assertThat(url).asString().startsWith("${MATCHING_DB_URL:");

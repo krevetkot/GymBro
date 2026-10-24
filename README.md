@@ -132,7 +132,7 @@ flowchart LR
 
 | Сервис | Что делает | Стек | Порт |
 |---|---|---|---|
-| `config-server` | Отдаёт настройки всех сервисов из папки `config-repo/` (режим `native`) | Spring Cloud Config | 8888 |
+| `config-server` | Отдаёт настройки из папки `config-repo/` (режим `native`): общий `application.yml` и `<сервис>/application-dev.yml` для профиля `dev` | Spring Cloud Config | 8888 |
 | `eureka-server` | Реестр сервисов | Spring Cloud Netflix Eureka | 8761 |
 | `gateway` | Единственный вход: маршруты `lb://<сервис>`, Circuit Breaker на каждый сервис, общий Swagger | Spring Cloud Gateway (WebFlux) | 8080 |
 | `identity-service` | Учётные записи, роли, статусы; мягкое удаление | **Reactor + Spring Data JPA** | 8082 |

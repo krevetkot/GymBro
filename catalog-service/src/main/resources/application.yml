@@ -3,6 +3,9 @@ spring:
   application:
     name: catalog-service
 
+  profiles:
+    active: dev
+
   config:
     import: configserver:${CONFIG_SERVER_URL:http://localhost:8888}
 

@@ -1,5 +1,6 @@
 package ru.itmo.gymbro.catalog.service;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -13,13 +14,10 @@ import ru.itmo.gymbro.shared.api.NotFoundException;
 import java.util.Set;
 
 @Service
+@RequiredArgsConstructor
 class SportService implements SportUseCases {
 
     private final SportRepository sports;
-
-    public SportService(SportRepository sports) {
-        this.sports = sports;
-    }
 
     @Override
     public Mono<Sport> create(String name) {

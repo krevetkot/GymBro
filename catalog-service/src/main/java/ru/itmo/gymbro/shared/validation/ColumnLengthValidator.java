@@ -3,6 +3,7 @@ package ru.itmo.gymbro.shared.validation;
 import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.data.r2dbc.mapping.R2dbcMappingContext;
 import org.springframework.data.relational.core.mapping.RelationalPersistentEntity;
@@ -17,15 +18,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
 class ColumnLengthValidator implements SmartInitializingSingleton {
 
     private final R2dbcMappingContext mappingContext;
     private final DatabaseClient database;
-
-    ColumnLengthValidator(R2dbcMappingContext mappingContext, DatabaseClient database) {
-        this.mappingContext = mappingContext;
-        this.database = database;
-    }
 
     @Override
     public void afterSingletonsInstantiated() {

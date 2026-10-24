@@ -10,7 +10,7 @@ spring:
     config:
       server:
         native:
-          search-locations: ${CONFIG_REPO:file:./config-repo/,file:../config-repo/}
+          search-locations: ${CONFIG_REPO:file:./config-repo/,file:./config-repo/{application}/,file:../config-repo/,file:../config-repo/{application}/}
 
 server:
   port: ${CONFIG_SERVER_PORT:8888}

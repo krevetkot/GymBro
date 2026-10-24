@@ -44,8 +44,8 @@ class RemoteUserDirectoryTest extends AbstractIntegrationTest {
 
     @DynamicPropertySource
     static void identityUrl(DynamicPropertyRegistry registry) {
-        registry.add("spring.cloud.openfeign.client.config.identity-service.url", IDENTITY::baseUrl);
-        registry.add("spring.cloud.openfeign.client.config.identity-service.read-timeout", () -> 1_000);
+        registry.add("gymbro.clients.identity-url", IDENTITY::baseUrl);
+        registry.add("reactive.feign.client.config.identity-service.options.readTimeoutMillis", () -> 1_000);
     }
 
     private static void warmUp() {
@@ -82,7 +82,7 @@ class RemoteUserDirectoryTest extends AbstractIntegrationTest {
         IDENTITY.stubFor(get(urlEqualTo("/internal/v1/users/7"))
                 .willReturn(okJson("{\"id\":7,\"active\":true,\"admin\":true}")));
 
-        assertThat(directory.getSnapshot(7)).isEqualTo(new UserSnapshot(7, true, true));
+        assertThat(directory.getSnapshot(7).block()).isEqualTo(new UserSnapshot(7, true, true));
     }
 
     @Test
@@ -90,7 +90,7 @@ class RemoteUserDirectoryTest extends AbstractIntegrationTest {
     void readsBannedIds() {
         IDENTITY.stubFor(get(urlEqualTo("/internal/v1/users/banned-ids")).willReturn(okJson("[3,5]")));
 
-        assertThat(directory.bannedUserIds()).containsExactlyInAnyOrder(3L, 5L);
+        assertThat(directory.bannedUserIds().block()).containsExactlyInAnyOrder(3L, 5L);
     }
 
     @Test
@@ -98,7 +98,7 @@ class RemoteUserDirectoryTest extends AbstractIntegrationTest {
     void mapsNotFound() {
         IDENTITY.stubFor(get(urlEqualTo("/internal/v1/users/7")).willReturn(problem(404)));
 
-        assertThatThrownBy(() -> directory.getSnapshot(7)).isInstanceOf(NotFoundException.class);
+        assertThatThrownBy(() -> directory.getSnapshot(7).block()).isInstanceOf(NotFoundException.class);
     }
 
     @Test
@@ -106,7 +106,7 @@ class RemoteUserDirectoryTest extends AbstractIntegrationTest {
     void mapsServerError() {
         IDENTITY.stubFor(get(urlEqualTo("/internal/v1/users/7")).willReturn(problem(500)));
 
-        assertThatThrownBy(() -> directory.getSnapshot(7)).isInstanceOf(DependencyUnavailableException.class);
+        assertThatThrownBy(() -> directory.getSnapshot(7).block()).isInstanceOf(DependencyUnavailableException.class);
     }
 
     @Test
@@ -115,7 +115,7 @@ class RemoteUserDirectoryTest extends AbstractIntegrationTest {
         IDENTITY.stubFor(get(urlEqualTo("/internal/v1/users/7"))
                 .willReturn(okJson("{\"id\":7,\"active\":true,\"admin\":false}").withFixedDelay(3_000)));
 
-        assertThatThrownBy(() -> directory.getSnapshot(7)).isInstanceOf(DependencyUnavailableException.class);
+        assertThatThrownBy(() -> directory.getSnapshot(7).block()).isInstanceOf(DependencyUnavailableException.class);
     }
 
     @Test
@@ -123,7 +123,7 @@ class RemoteUserDirectoryTest extends AbstractIntegrationTest {
     void mapsEmptyBody() {
         IDENTITY.stubFor(get(urlEqualTo("/internal/v1/users/7")).willReturn(aResponse().withStatus(200)));
 
-        assertThatThrownBy(() -> directory.getSnapshot(7)).isInstanceOf(DependencyUnavailableException.class);
+        assertThatThrownBy(() -> directory.getSnapshot(7).block()).isInstanceOf(DependencyUnavailableException.class);
     }
 
     @Test
@@ -131,11 +131,11 @@ class RemoteUserDirectoryTest extends AbstractIntegrationTest {
     void opensAfterFailuresAndStopsCalling() {
         IDENTITY.stubFor(get(urlEqualTo("/internal/v1/users/7")).willReturn(problem(503)));
         for (int call = 0; call < 5; call++) {
-            assertThatThrownBy(() -> directory.getSnapshot(7)).isInstanceOf(DependencyUnavailableException.class);
+            assertThatThrownBy(() -> directory.getSnapshot(7).block()).isInstanceOf(DependencyUnavailableException.class);
         }
 
         IDENTITY.resetRequests();
-        assertThatThrownBy(() -> directory.getSnapshot(7))
+        assertThatThrownBy(() -> directory.getSnapshot(7).block())
                 .isInstanceOf(DependencyUnavailableException.class)
                 .hasMessageContaining("запросы к нему приостановлены");
         IDENTITY.verify(0, getRequestedFor(urlEqualTo("/internal/v1/users/7")));

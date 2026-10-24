@@ -1,5 +1,6 @@
 package ru.itmo.gymbro.catalog.service;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -14,15 +15,11 @@ import ru.itmo.gymbro.shared.api.NotFoundException;
 import java.util.Set;
 
 @Service
+@RequiredArgsConstructor
 class GymService implements GymUseCases {
 
     private final GymRepository gyms;
     private final CurrentUserAccess access;
-
-    public GymService(GymRepository gyms, CurrentUserAccess access) {
-        this.gyms = gyms;
-        this.access = access;
-    }
 
     @Override
     public Mono<Gym> create(String name, String city, String address) {
