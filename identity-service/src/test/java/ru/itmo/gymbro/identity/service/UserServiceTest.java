@@ -1,6 +1,7 @@
 package ru.itmo.gymbro.identity.service;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.transaction.PlatformTransactionManager;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -25,7 +26,7 @@ class UserServiceTest {
     private final CurrentUserProvider currentUser = mock(CurrentUserProvider.class);
     private final UserRepository users = mock(UserRepository.class);
     private final UserService service = new UserService(users, currentUser,
-            new BlockingJpa(mock(PlatformTransactionManager.class)));
+            new BlockingJpa(mock(PlatformTransactionManager.class)), new BCryptPasswordEncoder());
 
     @Test
     void acceptsActiveUserButDoesNotGrantAdminRights() {

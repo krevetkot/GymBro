@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.identity.api.UserDirectory;
@@ -29,6 +30,7 @@ class UserService implements UserUseCases, UserDirectory, CurrentUserAccess {
     private final UserRepository users;
     private final CurrentUserProvider currentUser;
     private final BlockingJpa jpa;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public Mono<User> register(String email, String password) {
@@ -36,7 +38,7 @@ class UserService implements UserUseCases, UserDirectory, CurrentUserAccess {
             if (users.existsByEmail(email)) {
                 throw new ConflictException("Пользователь с email " + email + " уже зарегистрирован");
             }
-            return users.save(User.register(email, password));
+            return users.save(User.register(email, encodePassword(password)));
         });
     }
 
@@ -64,7 +66,7 @@ class UserService implements UserUseCases, UserDirectory, CurrentUserAccess {
                 user.changeEmail(newEmail);
             }
             if (newPassword != null) {
-                user.changePassword(newPassword);
+                user.changePassword(encodePassword(newPassword));
             }
             return users.save(user);
         });
@@ -112,5 +114,12 @@ class UserService implements UserUseCases, UserDirectory, CurrentUserAccess {
     private User findActive(long id) {
         return users.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь " + id + " не найден"));
+    }
+
+    private String encodePassword(String password) {
+        if (password == null || password.isBlank()) {
+            throw new IllegalArgumentException("Пароль обязателен");
+        }
+        return passwordEncoder.encode(password);
     }
 }

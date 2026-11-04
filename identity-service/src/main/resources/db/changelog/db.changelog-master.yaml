@@ -3,3 +3,5 @@ databaseChangeLog:
       file: db/changelog/modules/01-identity.yaml
   - include:
       file: db/changelog/modules/02-user-lifecycle.yaml
+  - include:
+      file: db/changelog/modules/03-password-hashes.yaml

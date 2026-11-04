@@ -7,6 +7,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.identity.model.User;
@@ -26,6 +27,9 @@ class UserApiIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private UserRepository users;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @Test
     @DisplayName("Регистрация возвращает 201, адрес пользователя и тело без пароля")
     void registersUser() {
@@ -41,7 +45,8 @@ class UserApiIntegrationTest extends AbstractIntegrationTest {
                 .jsonPath("$.password").doesNotExist();
 
         User stored = users.findByEmail("anna@mail.ru").orElseThrow();
-        assertThat(stored.getPassword()).isEqualTo("secret-password");
+        assertThat(stored.getPassword()).isNotEqualTo("secret-password");
+        assertThat(passwordEncoder.matches("secret-password", stored.getPassword())).isTrue();
     }
 
     @Test
@@ -165,7 +170,9 @@ class UserApiIntegrationTest extends AbstractIntegrationTest {
                 .expectStatus().isOk()
                 .expectBody().jsonPath("$.email").isEqualTo("secure@mail.ru");
 
-        assertThat(users.findByEmail("secure@mail.ru").orElseThrow().getPassword()).isEqualTo("brand-new-password");
+        String storedHash = users.findByEmail("secure@mail.ru").orElseThrow().getPassword();
+        assertThat(storedHash).isNotEqualTo("brand-new-password");
+        assertThat(passwordEncoder.matches("brand-new-password", storedHash)).isTrue();
     }
 
     @Test

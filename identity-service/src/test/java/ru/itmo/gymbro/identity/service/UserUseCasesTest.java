@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import reactor.test.StepVerifier;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.identity.api.UserUseCases;
@@ -21,8 +22,11 @@ class UserUseCasesTest extends AbstractIntegrationTest {
     @Autowired
     private UserUseCases users;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @Test
-    @DisplayName("Регистрация создаёт активного пользователя с переданным паролем")
+    @DisplayName("Регистрация создаёт активного пользователя с хэшем пароля")
     void registersUserWithPassword() {
         User user = users.register("New@Mail.ru", "secret-password").block();
 
@@ -30,7 +34,8 @@ class UserUseCasesTest extends AbstractIntegrationTest {
         assertThat(stored.getEmail()).isEqualTo("new@mail.ru");
         assertThat(stored.getRole()).isEqualTo(Role.USER);
         assertThat(stored.getStatus()).isEqualTo(UserStatus.ACTIVE);
-        assertThat(stored.getPassword()).isEqualTo("secret-password");
+        assertThat(stored.getPassword()).isNotEqualTo("secret-password");
+        assertThat(passwordEncoder.matches("secret-password", stored.getPassword())).isTrue();
     }
 
     @Test

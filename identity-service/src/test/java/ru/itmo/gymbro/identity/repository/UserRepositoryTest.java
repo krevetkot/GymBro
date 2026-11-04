@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.identity.model.Role;
 import ru.itmo.gymbro.identity.model.User;
@@ -16,6 +17,9 @@ class UserRepositoryTest extends AbstractIntegrationTest {
 
     @Autowired
     private UserRepository users;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Test
     @DisplayName("Пользователь сохраняется и читается обратно")
@@ -85,12 +89,13 @@ class UserRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Миграция создала тестового администратора с паролем admin12345")
+    @DisplayName("Миграция хранит пароль тестового администратора только как BCrypt-хэш")
     void seedsTestAdmin() {
         User admin = users.findByEmail("admin@gymbro.local").orElseThrow();
 
         assertThat(admin.getRole()).isEqualTo(Role.ADMIN);
         assertThat(admin.getStatus()).isEqualTo(UserStatus.ACTIVE);
-        assertThat(admin.getPassword()).isEqualTo("admin12345");
+        assertThat(admin.getPassword()).isNotEqualTo("admin12345");
+        assertThat(passwordEncoder.matches("admin12345", admin.getPassword())).isTrue();
     }
 }
