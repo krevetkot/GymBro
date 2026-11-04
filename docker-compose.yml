@@ -113,6 +113,7 @@ services:
       IDENTITY_DB_URL: jdbc:postgresql://identity-db:5432/${IDENTITY_DB_NAME:-gymbro_identity}
       IDENTITY_DB_USER: ${IDENTITY_DB_USER:-gymbro_identity}
       IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:-gymbro_identity}
+      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health | grep -q UP"]
       <<: *healthcheck
