@@ -2,15 +2,18 @@ package ru.itmo.gymbro.identity.web;
 
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.identity.model.User;
+import ru.itmo.gymbro.identity.dto.TokenResponse;
 import ru.itmo.gymbro.identity.repository.UserRepository;
 
 import java.util.List;
@@ -29,6 +32,19 @@ class UserApiIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @BeforeEach
+    void authenticate() {
+        TokenResponse token = client.post().uri("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"email\":\"admin@gymbro.local\",\"password\":\"admin12345\"}")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(TokenResponse.class).returnResult().getResponseBody();
+        client = client.mutate()
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + token.accessToken())
+                .build();
+    }
 
     @Test
     @DisplayName("Регистрация возвращает 201, адрес пользователя и тело без пароля")
