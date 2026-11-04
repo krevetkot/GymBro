@@ -34,28 +34,28 @@ class UserService implements UserUseCases, UserDirectory, CurrentUserAccess {
 
     @Override
     public Mono<User> register(String email, String password) {
-        return jpa.write(() -> {
+        return requireAdmin().then(jpa.write(() -> {
             if (users.existsByEmail(email)) {
                 throw new ConflictException("Пользователь с email " + email + " уже зарегистрирован");
             }
             return users.save(User.register(email, encodePassword(password)));
-        });
+        }));
     }
 
     @Override
     public Mono<User> getById(long id) {
-        return jpa.read(() -> findActive(id));
+        return requireOwnerOrAdmin(id).then(jpa.read(() -> findActive(id)));
     }
 
     @Override
     public Mono<Page<User>> getPage(Pageable pageable) {
-        return jpa.read(() -> users.findAllByDeletedFalse(
-                PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by("id"))));
+        return requireAdmin().then(jpa.read(() -> users.findAllByDeletedFalse(
+                PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by("id")))));
     }
 
     @Override
     public Mono<User> update(long id, String newEmail, String newPassword) {
-        return jpa.write(() -> {
+        return requireOwnerOrAdmin(id).then(jpa.write(() -> {
             User user = findActive(id);
             if (newEmail != null) {
                 users.findByEmail(newEmail)
@@ -69,20 +69,21 @@ class UserService implements UserUseCases, UserDirectory, CurrentUserAccess {
                 user.changePassword(encodePassword(newPassword));
             }
             return users.save(user);
-        });
+        }));
     }
 
     @Override
     public Mono<Void> delete(long id) {
-        return jpa.write(() -> {
+        return requireOwnerOrAdmin(id).then(jpa.write(() -> {
             findActive(id).delete();
             return true;
-        }).then();
+        })).then();
     }
 
     @Override
     public Mono<UserSnapshot> getSnapshot(long id) {
-        return getById(id).map(user -> new UserSnapshot(user.getId(), user.isActive(), user.isAdmin()));
+        return jpa.read(() -> findActive(id))
+                .map(user -> new UserSnapshot(user.getId(), user.isActive(), user.isAdmin()));
     }
 
     @Override
@@ -100,6 +101,13 @@ class UserService implements UserUseCases, UserDirectory, CurrentUserAccess {
         return activeCurrentUser().flatMap(user -> user.isAdmin()
                 ? Mono.just(user.getId())
                 : Mono.error(new ForbiddenException("Операция доступна только администратору")));
+    }
+
+    private Mono<Void> requireOwnerOrAdmin(long targetId) {
+        return activeCurrentUser()
+                .flatMap(actor -> actor.isAdmin() || actor.getId() == targetId
+                        ? Mono.<Void>empty()
+                        : Mono.error(new ForbiddenException("Доступна только своя запись или роль ADMIN")));
     }
 
     private Mono<User> activeCurrentUser() {

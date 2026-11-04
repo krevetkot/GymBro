@@ -33,6 +33,8 @@ import java.util.List;
 @RequestMapping("/api/v1/users")
 @Tag(name = "Пользователи", description = "Учётные записи. Ответы не содержат пароль.")
 @ApiResponse(responseCode = "400", description = "Некорректные поля или параметры запроса")
+@ApiResponse(responseCode = "401", description = "Требуется действительный Bearer-токен")
+@ApiResponse(responseCode = "403", description = "Недостаточно прав")
 @RequiredArgsConstructor
 class UserController {
 
@@ -40,7 +42,7 @@ class UserController {
 
     @PostMapping
     @Operation(summary = "Зарегистрировать пользователя",
-            description = "Создаёт активного пользователя с ролью USER.")
+            description = "Только ADMIN (супервайзер) создаёт активного пользователя с ролью USER.")
     @ApiResponse(responseCode = "201", description = "Пользователь создан; Location содержит адрес записи")
     @ApiResponse(responseCode = "409", description = "Email уже занят")
     Mono<ResponseEntity<UserResponse>> register(@Valid @RequestBody RegisterUserRequest request) {
@@ -50,7 +52,7 @@ class UserController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Получить пользователя")
+    @Operation(summary = "Получить пользователя", description = "Свою запись или любую запись для ADMIN.")
     @ApiResponse(responseCode = "200", description = "Пользователь найден")
     @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     Mono<UserResponse> getById(@PathVariable @Positive long id) {
@@ -59,7 +61,8 @@ class UserController {
 
     @GetMapping
     @Operation(summary = "Получить страницу пользователей",
-            description = "page начинается с 0; size по умолчанию 20, максимум 50. Общее количество — в X-Total-Count.")
+            description = "Только ADMIN. page начинается с 0; size по умолчанию 20, максимум 50. "
+                    + "Общее количество — в X-Total-Count.")
     @ApiResponse(responseCode = "200", description = "Страница пользователей",
             headers = @Header(name = "X-Total-Count", description = "Общее количество пользователей",
                     schema = @Schema(type = "integer", format = "int64")))
@@ -70,7 +73,7 @@ class UserController {
     @PatchMapping("/{id}")
     @Operation(summary = "Изменить email или пароль",
             description = "Поля, отсутствующие в запросе или равные null, сохраняют прежние значения. "
-                    + "Проверка владельца записи пока не реализована.")
+                    + "Свою запись может изменить пользователь, любую — ADMIN.")
     @ApiResponse(responseCode = "200", description = "Пользователь обновлён")
     @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     @ApiResponse(responseCode = "409", description = "Email уже занят")
@@ -80,7 +83,7 @@ class UserController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Удалить пользователя",
-            description = "Проверка владельца записи пока не реализована. "
+            description = "Свою запись может удалить пользователь, любую — ADMIN. "
                     + "Учётная запись помечается удалённой и больше не доступна через API. "
                     + "Связанные данные сохраняются в сервисах-владельцах.")
     @ApiResponse(responseCode = "204", description = "Пользователь удалён")
