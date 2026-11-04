@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -33,7 +32,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/users")
 @Tag(name = "Пользователи", description = "Учётные записи. Ответы не содержат пароль.")
-@SecurityRequirements
 @ApiResponse(responseCode = "400", description = "Некорректные поля или параметры запроса")
 @RequiredArgsConstructor
 class UserController {
