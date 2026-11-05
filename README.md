@@ -91,9 +91,11 @@ flowchart LR
 
     group(["Набирать группу для тренировок"]):::uc
     attachCert(["Приложить сертификат"]):::uc
+    hourlyRate(["Указать цену часа занятия"]):::uc
 
     trainer --- group
     trainer --- attachCert
+    trainer --- hourlyRate
 ```
 
 
@@ -135,7 +137,7 @@ flowchart LR
 | `config-server` | Отдаёт настройки из папки `config-repo/` (режим `native`): общий `application.yml` и `<сервис>/application-dev.yml` для профиля `dev` | Spring Cloud Config | 8888 |
 | `eureka-server` | Реестр сервисов | Spring Cloud Netflix Eureka | 8761 |
 | `gateway` | Единственный вход: маршруты `lb://<сервис>`, Circuit Breaker на каждый сервис, общий Swagger | Spring Cloud Gateway (WebFlux) | 8080 |
-| `identity-service` | Учётные записи, роли, статусы; мягкое удаление | **Reactor + Spring Data JPA** | 8082 |
+| `identity-service` | Учётные записи, роли, статусы, вход и выдача JWT, сертификаты тренеров; мягкое удаление | **Reactor + Spring Data JPA** | 8082 |
 | `catalog-service` | Виды спорта, залы, заявки на залы | **Reactor + R2DBC** | 8083 |
 | `profile-service` | Анкеты, виды спорта с уровнем и залы в анкете, подбор кандидатов в ленту | Spring MVC + JPA | 8084 |
 | `matching-service` | Лента, лайки, мэтчи | Spring MVC + JPA | 8085 |
@@ -188,6 +190,83 @@ flowchart LR
 - `client` — Feign-клиенты соседних сервисов.
 - `shared` (своя копия в каждом сервисе) — ошибки, текущий пользователь, пагинация, OpenAPI.
 
+## Авторизация и роли
+
+### Как получить токен
+
+Пользователей создаёт только администратор (супервайзер), самостоятельной регистрации нет.
+Первый администратор создаётся миграцией: `admin@gymbro.local` / `admin12345`.
+
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/login \
+     -H 'Content-Type: application/json' \
+     -d '{"email":"admin@gymbro.local","password":"admin12345"}'
+# {"accessToken":"eyJ...","tokenType":"Bearer","expiresIn":3600}
+```
+
+Токен передаётся в заголовке `Authorization: Bearer <accessToken>`, в Swagger — кнопка Authorize.
+Это JWT, подписанный HS256 общим секретом `JWT_SECRET_BASE64`: `sub` — id пользователя,
+`role` — роль, `iss` — `gymbro-identity`, срок жизни — 1 час. Заголовок `X-User-Id`
+больше не работает.
+
+### Кто проверяет токен
+
+- Токен выдаёт только identity-service. Проверяет его **каждый сервис сам**: Spring Security
+  в режиме resource server с тем же секретом. Gateway просто передаёт заголовок дальше, поэтому
+  прямой запрос к сервису в обход gateway тоже требует токен.
+- Без токена доступны: вход, чтение справочника видов спорта и залов, `/internal/**`
+  (межсервисные вызовы, наружу через gateway не маршрутизируются), health и Swagger.
+- Отказы Spring Security приходят тем же ProblemDetail, что и остальные ошибки:
+  401 с `WWW-Authenticate: Bearer` — нет токена, токен истёк, подпись или issuer чужие;
+  403 — не хватает прав.
+
+### Пароли
+
+Пароли хранятся только как хэш BCrypt (миграция `03-password-hashes.yaml` перехэшировала
+старые записи). Ни один ответ API, где участвует пользователь, пароль не содержит:
+`UserResponse`, токен и снимки для соседних сервисов его не включают.
+
+### Роли
+
+Роль хранится в `users.role` и попадает в токен при входе.
+
+| Действие | USER | TRAINER | ADMIN |
+|---|:---:|:---:|:---:|
+| Своя анкета, лента, лайки, мэтчи, заявка на зал | ✓ | ✓ | ✓ |
+| Приложить сертификат тренера | ✓ | ✓ | — |
+| Указать цену часа занятия | — | ✓ | — |
+| Читать, менять, удалять свою учётную запись | ✓ | ✓ | ✓ |
+| Создавать пользователей, видеть их список, назначать роли USER/ADMIN | — | — | ✓ |
+| Читать, менять, удалять чужую учётную запись | — | — | ✓ |
+| Менять справочник видов спорта и залов | — | — | ✓ |
+| Рассматривать заявки на залы | — | — | ✓ |
+| Верифицировать сертификаты тренеров | — | — | ✓ |
+
+Права проверяются на двух уровнях. Грубо — по роли из токена в фильтре Spring Security
+(`hasRole`). Точно — в сервисе по актуальной роли и статусу из identity. Поэтому
+заблокированный или разжалованный пользователь теряет права сразу, даже со старым токеном,
+а новые права после повышения появляются, когда пользователь войдёт заново.
+
+### Как стать тренером
+
+1. Пользователь прикладывает сертификат или диплом: `POST /api/v1/certificates`
+   с `sportId` и ссылкой `fileUrl` на скан. Сертификат получает статус PENDING; по одному
+   виду спорта на проверке может быть только один сертификат. Свои сертификаты —
+   `GET /api/v1/certificates/me`.
+2. Администратор видит очередь `GET /api/v1/certificates?status=PENDING` (общее количество —
+   в `X-Total-Count`) и одобряет (`POST /api/v1/certificates/{id}/approve`) или отклоняет
+   (`.../reject`) сертификат.
+3. При одобрении пользователь получает роль TRAINER (транзакция №3). Напрямую назначить
+   TRAINER нельзя — только через одобренный сертификат; снять роль можно, назначив USER.
+4. Тренер указывает цену часа: `PUT /api/v1/profiles/me/hourly-rate` с `{"hourlyRate": 1500}`
+   (рубли, от 1 до 100 000; `null` убирает цену).
+5. В анкете (`GET /api/v1/profiles/{userId}`) и в карточке ленты тренер выделен блоком
+   `"trainer": {"certificateVerified": true, "hourlyRate": 1500}`. У остальных блока нет.
+   Если identity временно недоступен, анкета и лента показываются без этого блока.
+
+Файл сертификата пока передаётся ссылкой; загрузка файлов появится вместе с файловым
+сервисом. Сценарий «Набирать группу для тренировок» в проект пока не входит.
+
 ## Запуск
 
 Нужен Docker. Из корня проекта:
@@ -207,9 +286,9 @@ docker compose up --build -d
 | Eureka (зарегистрированные сервисы) | http://localhost:8761 |
 | Базы identity / catalog / profile / matching | `localhost:5434` / `5435` / `5436` / `5437` |
 
-Текущий пользователь определяется по JWT в заголовке `Authorization: Bearer <токен>`. Токен
-выдаёт `POST /api/v1/auth/login`, проверяет его каждый сервис общим секретом `JWT_SECRET_BASE64`
-из `.env`. В Swagger — кнопка Authorize. Администратор из миграции — `admin@gymbro.local` / `admin12345`.
+Перед первым запуском скопируйте `.env.example` в `.env`. Ключ подписи токенов
+`JWT_SECRET_BASE64` обязателен, без него compose не стартует; свой ключ можно сгенерировать
+командой `openssl rand -base64 32`. Как получить токен — в разделе «Авторизация и роли».
 
 Проверка Circuit Breaker: `docker compose stop profile-service`. Лента
 (`GET /api/v1/feed`) вернёт пустую страницу, а `GET /api/v1/profiles/{id}` — 503 из fallback
@@ -226,7 +305,7 @@ gateway. После `docker compose start profile-service` всё восстан
 ## Схема БД
 
 Ниже логическая схема всей предметной области. Физически таблицы разнесены по базам
-сервисов: `users` лежит в identity-db, `sports`, `gyms` и `gym_requests` — в catalog-db,
+сервисов: `users` и `certificates` лежат в identity-db, `sports`, `gyms` и `gym_requests` — в catalog-db,
 `user_profiles`, `user_sports` и `user_gyms` — в profile-db, а `likes` и `matches` — в matching-db.
 Связи между таблицами разных баз — это обычные идентификаторы без внешних ключей, их целостность
 проверяет код через вызовы соседнего сервиса. Внешние ключи остались только внутри одной базы.
@@ -245,6 +324,9 @@ erDiagram
     users ||--o{ likes : "получатель to_user_id"
     users ||--o{ matches : "участник user1_id"
     users ||--o{ matches : "участник user2_id"
+    users ||--o{ certificates : "прикладывает trainer_id"
+    users o|--o{ certificates : "проверяет reviewed_by"
+    sports ||--o{ certificates : "вид спорта"
 
     users {
         bigint id PK
@@ -260,6 +342,7 @@ erDiagram
         varchar name
         date birth_date
         text about
+        integer hourly_rate "цена часа, только у тренера"
         timestamp updated_at
     }
     sports {
@@ -306,11 +389,20 @@ erDiagram
         bigint user2_id FK
         timestamp created_at
     }
+    certificates {
+        bigint id PK
+        bigint trainer_id FK
+        bigint sport_id FK
+        varchar file_url
+        varchar status "PENDING | APPROVED | REJECTED"
+        bigint reviewed_by FK
+        timestamp created_at
+    }
 ```
 
 Типы связей:
 
-- One-to-Many / Many-to-One: пользователь и его заявки на залы (`gym_requests.author_id`), пользователь и лайки (`likes.from_user_id`, `likes.to_user_id`).
+- One-to-Many / Many-to-One: пользователь и его заявки на залы (`gym_requests.author_id`), пользователь и лайки (`likes.from_user_id`, `likes.to_user_id`), пользователь и его сертификаты (`certificates.trainer_id`).
 - Many-to-Many: анкеты и залы через `user_gyms`.
 - Many-to-Many с дополнительным полем: анкеты и виды спорта через `user_sports.level`.
 - Дополнительно One-to-One: учётная запись и необязательная анкета.
@@ -356,6 +448,19 @@ size урезается до 50. В MVC-сервисах это делают с�
 зафиксированный встречный лайк, и совпадение не появилось бы. Одна транзакция
 обеспечивает атомарность лайка и совпадения.
 
+### №3: одобрение сертификата тренера
+
+`CertificateService.approve` в identity-service — транзакция JPA через `BlockingJpa`
+(`TransactionTemplate` на `boundedElastic`):
+
+1. До транзакции проверяет активного администратора.
+2. Блокирует строку сертификата (`SELECT ... FOR UPDATE`) и проверяет статус PENDING.
+3. Проверяет, что автор не заблокирован и не удалён.
+4. Сохраняет APPROVED и reviewedBy в сертификате и меняет роль автора USER → TRAINER.
+
+Роль не должна смениться без одобренного сертификата, а одобренный сертификат — остаться
+без роли. Блокировка не даёт двум администраторам рассмотреть один сертификат одновременно.
+
 ### Обновления профиля
 
 Изменение полей и коллекций анкеты также транзакционно. Для существующего профиля
@@ -365,8 +470,8 @@ size урезается до 50. В MVC-сервисах это делают с�
 
 Общий `ApiExceptionHandler` возвращает ProblemDetail (`status`, `title`, `detail`).
 Для ошибок полей добавляется `errors`. Статусы: 400 — некорректные данные;
-401 — текущий пользователь не определён/не найден; 403 — недостаточно прав или
-блокировка; 404 — объект не найден; 409 — дубликат или конфликт состояния;
+401 — нет действительного Bearer-токена или пользователь из токена не найден;
+403 — недостаточно прав для роли или пользователь заблокирован; 404 — объект не найден; 409 — дубликат или конфликт состояния;
 500 — неожиданная внутренняя ошибка; 503 — соседний сервис недоступен (ответ сервиса
 или fallback gateway). 
 

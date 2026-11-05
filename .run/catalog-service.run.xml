@@ -2,6 +2,7 @@
   <configuration default="false" name="catalog-service" type="Application" factoryName="Application" folderName="GymBro">
     <envs>
       <env name="EUREKA_INSTANCE_IP_ADDRESS" value="127.0.0.1" />
+      <env name="JWT_SECRET_BASE64" value="LPkU0bcBRM9s47uqLtmSgG5IW7RcOnjEyUEiXXIUUY4=" />
     </envs>
     <option name="VM_PARAMETERS" value="-Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8" />
     <option name="MAIN_CLASS_NAME" value="ru.itmo.gymbro.CatalogApplication" />
