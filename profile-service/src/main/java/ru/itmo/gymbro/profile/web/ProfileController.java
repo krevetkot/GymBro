@@ -3,7 +3,6 @@ package ru.itmo.gymbro.profile.web;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -37,7 +36,6 @@ class ProfileController {
 
     @GetMapping("/{userId}")
     @Operation(summary = "Получить анкету по идентификатору пользователя")
-    @SecurityRequirements
     @ApiResponse(responseCode = "200", description = "Анкета найдена")
     ProfileResponse getByUserId(@PathVariable @Positive long userId) {
         return ProfileResponse.from(profiles.getByUserId(userId));
@@ -45,7 +43,7 @@ class ProfileController {
 
     @PutMapping("/me")
     @Operation(summary = "Создать или изменить свою анкету",
-            description = "Текущий пользователь определяется по X-User-Id. "
+            description = "Текущий пользователь определяется по Bearer-токену. "
                     + "При первом сохранении возвращается 201 и Location, при изменении — 200.")
     @SecurityRequirement(name = "currentUser")
     @ApiResponse(responseCode = "200", description = "Анкета обновлена")

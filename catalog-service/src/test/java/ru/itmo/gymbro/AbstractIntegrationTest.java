@@ -47,6 +47,7 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.liquibase.url", POSTGRES::getJdbcUrl);
         registry.add("spring.liquibase.user", POSTGRES::getUsername);
         registry.add("spring.liquibase.password", POSTGRES::getPassword);
+        registry.add("gymbro.jwt.secret", () -> TestTokens.SECRET);
     }
 
     @BeforeEach

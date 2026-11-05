@@ -6,15 +6,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 import ru.itmo.gymbro.AbstractIntegrationTest;
+import ru.itmo.gymbro.TestTokens;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,7 +45,7 @@ class LikeTransactionIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mvc = securedMvc(context);
     }
 
     @AfterEach
@@ -97,7 +98,7 @@ class LikeTransactionIntegrationTest extends AbstractIntegrationTest {
 
     private MockHttpServletResponse like(long from, long to) throws Exception {
         return mvc.perform(post("/api/v1/likes")
-                        .header("X-User-Id", from)
+                        .header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(from))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"toUserId\":%d}".formatted(to)))
                 .andReturn().getResponse();

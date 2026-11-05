@@ -6,12 +6,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import ru.itmo.gymbro.AbstractIntegrationTest;
+import ru.itmo.gymbro.TestTokens;
 import ru.itmo.gymbro.profile.model.SportLevel;
 import ru.itmo.gymbro.profile.model.UserGym;
 import ru.itmo.gymbro.profile.model.UserProfile;
@@ -48,7 +49,7 @@ class ProfileSportsAndGymsApiIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mvc = securedMvc(context);
         userId = testUsers.active();
         profiles.save(UserProfile.create(userId, "Ксения", LocalDate.of(2003, 5, 17), null));
         running = testCatalog.sport();
@@ -194,7 +195,7 @@ class ProfileSportsAndGymsApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Без X-User-Id — 401, забаненный пользователь — 403")
+    @DisplayName("Без токена — 401, забаненный пользователь — 403")
     void checksCurrentUser() throws Exception {
         mvc.perform(put(MY_GYMS).contentType(MediaType.APPLICATION_JSON).content("{\"gymIds\":[]}"))
                 .andExpect(status().isUnauthorized());
@@ -206,7 +207,7 @@ class ProfileSportsAndGymsApiIntegrationTest extends AbstractIntegrationTest {
 
     private ResultActions putJson(long currentUserId, String path, String body) throws Exception {
         return mvc.perform(put(path)
-                .header("X-User-Id", currentUserId)
+                .header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(currentUserId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body));
     }

@@ -5,10 +5,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import ru.itmo.gymbro.AbstractIntegrationTest;
+import ru.itmo.gymbro.TestTokens;
 import ru.itmo.gymbro.matching.model.Like;
 import ru.itmo.gymbro.matching.repository.LikeRepository;
 
@@ -41,7 +42,7 @@ class FeedApiIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mvc = securedMvc(context);
         viewer = userWithProfile();
         candidate = userWithProfile();
         likedMe = userWithProfile();
@@ -66,7 +67,7 @@ class FeedApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Ответ — срез без общего количества: items, page, size, hasNext")
     void returnsSliceWithoutTotal() throws Exception {
-        mvc.perform(get(FEED).header("X-User-Id", viewer).param("size", "1"))
+        mvc.perform(get(FEED).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(viewer)).param("size", "1"))
                 .andExpect(status().isOk())
                 .andExpect(header().doesNotExist("X-Total-Count"))
                 .andExpect(jsonPath("$.items", hasSize(1)))
@@ -83,7 +84,7 @@ class FeedApiIntegrationTest extends AbstractIntegrationTest {
         long withDetails = testUsers.active();
         testProfiles.add(withDetails, List.of(3L, 5L), List.of(7L));
 
-        String json = mvc.perform(get(FEED).header("X-User-Id", viewer).param("size", "50"))
+        String json = mvc.perform(get(FEED).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(viewer)).param("size", "50"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
@@ -98,7 +99,7 @@ class FeedApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Больше 50 карточек за запрос не отдаётся")
     void capsPageSize() throws Exception {
-        mvc.perform(get(FEED).header("X-User-Id", viewer).param("size", "1000"))
+        mvc.perform(get(FEED).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(viewer)).param("size", "1000"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size").value(50));
     }
@@ -108,14 +109,14 @@ class FeedApiIntegrationTest extends AbstractIntegrationTest {
     void requiresViewerProfile() throws Exception {
         long withoutProfile = testUsers.active();
 
-        mvc.perform(get(FEED).header("X-User-Id", withoutProfile)).andExpect(status().isNotFound());
+        mvc.perform(get(FEED).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(withoutProfile))).andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("Без X-User-Id — 401, забаненный смотрящий — 403")
+    @DisplayName("Без токена — 401, забаненный смотрящий — 403")
     void checksViewer() throws Exception {
         mvc.perform(get(FEED)).andExpect(status().isUnauthorized());
-        mvc.perform(get(FEED).header("X-User-Id", banned)).andExpect(status().isForbidden());
+        mvc.perform(get(FEED).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(banned))).andExpect(status().isForbidden());
     }
 
     @Test
@@ -135,7 +136,7 @@ class FeedApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     private List<Long> page(long viewerId, int page, int size) throws Exception {
-        String json = mvc.perform(get(FEED).header("X-User-Id", viewerId)
+        String json = mvc.perform(get(FEED).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(viewerId))
                         .param("size", String.valueOf(size)).param("page", String.valueOf(page)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
@@ -148,7 +149,7 @@ class FeedApiIntegrationTest extends AbstractIntegrationTest {
         int page = 0;
         boolean hasNext = true;
         while (hasNext) {
-            String json = mvc.perform(get(FEED).header("X-User-Id", viewerId)
+            String json = mvc.perform(get(FEED).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(viewerId))
                             .param("size", "50").param("page", String.valueOf(page)))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();

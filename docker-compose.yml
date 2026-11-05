@@ -113,7 +113,7 @@ services:
       IDENTITY_DB_URL: jdbc:postgresql://identity-db:5432/${IDENTITY_DB_NAME:-gymbro_identity}
       IDENTITY_DB_USER: ${IDENTITY_DB_USER:-gymbro_identity}
       IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:-gymbro_identity}
-      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64}
+      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64:?set JWT_SECRET_BASE64 in .env}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health | grep -q UP"]
       <<: *healthcheck
@@ -137,6 +137,7 @@ services:
       CATALOG_R2DBC_URL: r2dbc:postgresql://catalog-db:5432/${CATALOG_DB_NAME:-gymbro_catalog}
       CATALOG_DB_USER: ${CATALOG_DB_USER:-gymbro_catalog}
       CATALOG_DB_PASSWORD: ${CATALOG_DB_PASSWORD:-gymbro_catalog}
+      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64:?set JWT_SECRET_BASE64 in .env}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8083/actuator/health | grep -q UP"]
       <<: *healthcheck
@@ -159,6 +160,7 @@ services:
       PROFILE_DB_URL: jdbc:postgresql://profile-db:5432/${PROFILE_DB_NAME:-gymbro_profile}
       PROFILE_DB_USER: ${PROFILE_DB_USER:-gymbro_profile}
       PROFILE_DB_PASSWORD: ${PROFILE_DB_PASSWORD:-gymbro_profile}
+      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64:?set JWT_SECRET_BASE64 in .env}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8084/actuator/health | grep -q UP"]
       <<: *healthcheck
@@ -181,6 +183,7 @@ services:
       MATCHING_DB_URL: jdbc:postgresql://matching-db:5432/${MATCHING_DB_NAME:-gymbro_matching}
       MATCHING_DB_USER: ${MATCHING_DB_USER:-gymbro_matching}
       MATCHING_DB_PASSWORD: ${MATCHING_DB_PASSWORD:-gymbro_matching}
+      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64:?set JWT_SECRET_BASE64 in .env}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8085/actuator/health | grep -q UP"]
       <<: *healthcheck

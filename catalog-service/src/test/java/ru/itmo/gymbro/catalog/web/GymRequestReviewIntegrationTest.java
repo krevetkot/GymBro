@@ -7,10 +7,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.AbstractIntegrationTest;
+import ru.itmo.gymbro.TestTokens;
 import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.model.GymRequest;
 import ru.itmo.gymbro.catalog.model.RequestStatus;
@@ -220,7 +222,7 @@ class GymRequestReviewIntegrationTest extends AbstractIntegrationTest {
 
     private WebTestClient.ResponseSpec review(
             long id, String operation, long userId) {
-        return client.post().uri(action(id, operation)).header("X-User-Id", String.valueOf(userId)).exchange();
+        return client.post().uri(action(id, operation)).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(userId)).exchange();
     }
 
     private int reviewStatus(long id, String operation) {

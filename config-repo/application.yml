@@ -24,3 +24,8 @@ eureka:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
   instance:
     prefer-ip-address: true
+
+# Общий ключ подписи JWT: токен выдаёт identity-service, проверяет каждый сервис.
+gymbro:
+  jwt:
+    secret: ${JWT_SECRET_BASE64}

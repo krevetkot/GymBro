@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
@@ -46,7 +47,12 @@ public class JwtSecurityConfiguration {
     }
 
     @Bean
-    SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
+    ProblemDetailSecurityErrors securityErrors(ServerCodecConfigurer codecs) {
+        return new ProblemDetailSecurityErrors(codecs);
+    }
+
+    @Bean
+    SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http, ProblemDetailSecurityErrors errors) {
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
@@ -56,7 +62,13 @@ public class JwtSecurityConfiguration {
                         .pathMatchers("/internal/v1/users/**", "/actuator/health/**",
                                 "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyExchange().authenticated())
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}))
+                .exceptionHandling(handling -> handling
+                        .authenticationEntryPoint(errors)
+                        .accessDeniedHandler(errors))
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> {})
+                        .authenticationEntryPoint(errors)
+                        .accessDeniedHandler(errors))
                 .build();
     }
 }

@@ -7,12 +7,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import ru.itmo.gymbro.AbstractIntegrationTest;
+import ru.itmo.gymbro.TestTokens;
 import ru.itmo.gymbro.matching.repository.LikeRepository;
 import ru.itmo.gymbro.matching.repository.MatchRepository;
 
@@ -44,7 +45,7 @@ class LikeApiIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mvc = securedMvc(context);
         anna = newUser();
         boris = newUser();
     }
@@ -85,10 +86,10 @@ class LikeApiIntegrationTest extends AbstractIntegrationTest {
         like(anna, boris);
         like(boris, anna);
 
-        mvc.perform(get("/api/v1/matches").header("X-User-Id", anna))
+        mvc.perform(get("/api/v1/matches").header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(anna)))
                 .andExpect(header().string("X-Total-Count", "1"))
                 .andExpect(jsonPath("$[0].partnerUserId").value(boris));
-        mvc.perform(get("/api/v1/matches").header("X-User-Id", boris))
+        mvc.perform(get("/api/v1/matches").header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(boris)))
                 .andExpect(header().string("X-Total-Count", "1"))
                 .andExpect(jsonPath("$[0].partnerUserId").value(anna));
     }
@@ -113,7 +114,7 @@ class LikeApiIntegrationTest extends AbstractIntegrationTest {
 
         like(boris, anna).andExpect(status().isConflict());
 
-        mvc.perform(get("/api/v1/matches").header("X-User-Id", anna))
+        mvc.perform(get("/api/v1/matches").header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(anna)))
                 .andExpect(header().string("X-Total-Count", "1"));
     }
 
@@ -147,7 +148,7 @@ class LikeApiIntegrationTest extends AbstractIntegrationTest {
     @ValueSource(strings = {"{}", "{\"toUserId\":0}", "{\"toUserId\":-5}"})
     @DisplayName("Невалидное тело — 400 с полем toUserId")
     void invalidBodyIsRejected(String body) throws Exception {
-        mvc.perform(post(LIKES).header("X-User-Id", anna).contentType(MediaType.APPLICATION_JSON).content(body))
+        mvc.perform(post(LIKES).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(anna)).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].field").value("toUserId"));
     }
@@ -155,13 +156,13 @@ class LikeApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Нечисловой toUserId — 400")
     void nonNumericTargetIsRejected() throws Exception {
-        mvc.perform(post(LIKES).header("X-User-Id", anna).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post(LIKES).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(anna)).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"toUserId\":\"abc\"}"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("Без X-User-Id — 401, забаненный лайкающий — 403")
+    @DisplayName("Без токена — 401, забаненный лайкающий — 403")
     void checksCurrentUser() throws Exception {
         mvc.perform(post(LIKES).contentType(MediaType.APPLICATION_JSON).content("{\"toUserId\":%d}".formatted(boris)))
                 .andExpect(status().isUnauthorized());
@@ -186,7 +187,7 @@ class LikeApiIntegrationTest extends AbstractIntegrationTest {
 
     private ResultActions like(long from, long to) throws Exception {
         return mvc.perform(post(LIKES)
-                .header("X-User-Id", from)
+                .header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(from))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"toUserId\":%d}".formatted(to)));
     }
@@ -200,7 +201,7 @@ class LikeApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     private List<Long> feedUserIds(long viewerId) throws Exception {
-        String json = mvc.perform(get("/api/v1/feed").header("X-User-Id", viewerId).param("size", "50"))
+        String json = mvc.perform(get("/api/v1/feed").header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(viewerId)).param("size", "50"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         List<Number> ids = JsonPath.read(json, "$.items[*].userId");
