@@ -101,4 +101,24 @@ class InternalProfileApiIntegrationTest extends AbstractIntegrationTest {
         profiles.save(profile);
         return userId;
     }
+
+    @Test
+    @DisplayName("Тренер в ленте отмечен блоком trainer с ценой часа, обычный пользователь — нет")
+    void marksTrainers() throws Exception {
+        long viewer = userWithProfile("viewer");
+        long plain = userWithProfile("plain");
+        long trainer = testUsers.trainer();
+        UserProfile trainerProfile = UserProfile.create(trainer, "coach", LocalDate.of(1990, 1, 1), null);
+        trainerProfile.replaceSports(List.of(UserSport.of(sport, SportLevel.ADVANCED)));
+        trainerProfile.changeHourlyRate(1800);
+        profiles.save(trainerProfile);
+
+        String json = mvc.perform(get(FEED).param("viewerUserId", String.valueOf(viewer)).param("size", "50"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(JsonPath.<List<Integer>>read(json, "$.items[?(@.userId == " + trainer + ")].trainer.hourlyRate"))
+                .containsExactly(1800);
+        assertThat(JsonPath.<List<Object>>read(json, "$.items[?(@.userId == " + plain + ")].trainer")).isEmpty();
+    }
 }

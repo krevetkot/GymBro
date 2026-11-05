@@ -20,8 +20,12 @@ public class ProfileResponse {
     private final List<ProfileSportItem> sports;
     private final List<Long> gymIds;
     private final Instant updatedAt;
+    private final TrainerInfo trainer;
 
-    public static ProfileResponse from(UserProfile profile) {
+    /**
+     * @param verifiedTrainer подтверждён ли сертификат владельца; блок тренера показывается только при {@code true}
+     */
+    public static ProfileResponse from(UserProfile profile, Boolean verifiedTrainer) {
         return new ProfileResponse(
                 profile.getUserId(),
                 profile.getName(),
@@ -35,6 +39,7 @@ public class ProfileResponse {
                         .map(UserGym::getGymId)
                         .sorted()
                         .toList(),
-                profile.getUpdatedAt());
+                profile.getUpdatedAt(),
+                Boolean.TRUE.equals(verifiedTrainer) ? new TrainerInfo(true, profile.getHourlyRate()) : null);
     }
 }

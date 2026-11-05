@@ -23,6 +23,7 @@ import ru.itmo.gymbro.shared.api.UnauthorizedException;
 import ru.itmo.gymbro.shared.persistence.BlockingJpa;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -105,6 +106,16 @@ class UserService implements UserUseCases, UserDirectory, CurrentUserAccess {
     @Override
     public Mono<Set<Long>> bannedUserIds() {
         return jpa.read(() -> Set.copyOf(users.findBannedIds()));
+    }
+
+    @Override
+    public Mono<Set<Long>> trainerIds(Set<Long> ids) {
+        if (ids.isEmpty()) {
+            return Mono.just(Set.of());
+        }
+        return jpa.read(() -> users.findAllByIdInAndRoleAndDeletedFalse(ids, Role.TRAINER).stream()
+                .map(User::getId)
+                .collect(Collectors.toUnmodifiableSet()));
     }
 
     @Override

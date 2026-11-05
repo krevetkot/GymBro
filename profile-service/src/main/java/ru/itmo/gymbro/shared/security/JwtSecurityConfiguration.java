@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -15,6 +15,8 @@ import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
@@ -26,6 +28,7 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 public class JwtSecurityConfiguration {
 
     public static final String ISSUER = "gymbro-identity";
+    public static final String ROLE_CLAIM = "role";
 
     @Bean
     SecretKey jwtSecretKey(@Value("${gymbro.jwt.secret}") String encodedSecret) {
@@ -45,6 +48,16 @@ public class JwtSecurityConfiguration {
         return decoder;
     }
 
+    /** Claim {@code role} из токена превращается в authority {@code ROLE_<роль>} для {@code hasRole(...)}. */
+    static JwtAuthenticationConverter roleAuthorities() {
+        JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
+        authorities.setAuthoritiesClaimName(ROLE_CLAIM);
+        authorities.setAuthorityPrefix("ROLE_");
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(authorities);
+        return converter;
+    }
+
     @Bean
     ProblemDetailSecurityErrors securityErrors(
             @Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver) {
@@ -61,12 +74,13 @@ public class JwtSecurityConfiguration {
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers("/internal/**", "/actuator/health/**", "/error",
                                 "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/profiles/me/hourly-rate").hasRole("TRAINER")
                         .anyRequest().authenticated())
                 .exceptionHandling(handling -> handling
                         .authenticationEntryPoint(errors)
                         .accessDeniedHandler(errors))
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(Customizer.withDefaults())
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(roleAuthorities()))
                         .authenticationEntryPoint(errors)
                         .accessDeniedHandler(errors))
                 .build();

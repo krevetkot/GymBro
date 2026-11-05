@@ -6,6 +6,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.itmo.gymbro.catalog.api.CatalogDirectory;
+import ru.itmo.gymbro.identity.api.UserDirectory;
 import ru.itmo.gymbro.profile.api.FeedCandidates;
 import ru.itmo.gymbro.profile.api.ProfileDirectory;
 import ru.itmo.gymbro.profile.api.ProfileSnapshot;
@@ -16,6 +17,7 @@ import ru.itmo.gymbro.profile.model.UserProfile;
 import ru.itmo.gymbro.profile.model.UserSport;
 import ru.itmo.gymbro.profile.repository.UserProfileRepository;
 import ru.itmo.gymbro.shared.api.CurrentUserAccess;
+import ru.itmo.gymbro.shared.api.DependencyUnavailableException;
 import ru.itmo.gymbro.shared.api.NotFoundException;
 
 import java.time.LocalDate;
@@ -23,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -34,6 +37,7 @@ class ProfileService implements ProfileUseCases, ProfileDirectory {
     private final UserProfileRepository profiles;
     private final CurrentUserAccess access;
     private final CatalogDirectory catalog;
+    private final UserDirectory users;
 
     @Override
     public UserProfile getByUserId(long userId) {
@@ -79,6 +83,27 @@ class ProfileService implements ProfileUseCases, ProfileDirectory {
     }
 
     @Override
+    @Transactional
+    public UserProfile changeMyHourlyRate(Integer hourlyRate) {
+        long userId = access.requireTrainer();
+        UserProfile profile = profiles.findByUserIdForUpdate(userId)
+                .orElseThrow(() -> new NotFoundException(FILL_PROFILE_FIRST));
+        profile.changeHourlyRate(hourlyRate);
+        return profiles.save(profile);
+    }
+
+    @Override
+    public Boolean isVerifiedTrainer(long userId) {
+        try {
+            return users.getSnapshot(userId).isTrainer();
+        } catch (NotFoundException exception) {
+            return false;
+        } catch (DependencyUnavailableException exception) {
+            return null;
+        }
+    }
+
+    @Override
     public FeedCandidates findFeedCandidates(long viewerUserId, Set<Long> excludedUserIds, int page, int size) {
         if (viewerUserId <= 0 || page < 0 || size < 1 || size > 50) {
             throw new IllegalArgumentException("Некорректные параметры поиска анкет");
@@ -87,12 +112,30 @@ class ProfileService implements ProfileUseCases, ProfileDirectory {
                 .orElseThrow(() -> new NotFoundException(FILL_PROFILE_FIRST));
         Set<Long> excluded = new HashSet<>(excludedUserIds);
         excluded.add(viewerUserId);
-        Slice<ProfileSnapshot> candidates = profiles.findFeed(viewer.getId(), excluded, PageRequest.of(page, size))
+        Slice<UserProfile> found = profiles.findFeed(viewer.getId(), excluded, PageRequest.of(page, size));
+        Set<Long> trainers = trainersAmong(found.getContent());
+        List<ProfileSnapshot> candidates = found.getContent().stream()
                 .map(profile -> new ProfileSnapshot(profile.getUserId(), profile.getName(),
                         profile.getAge(), profile.getAbout(),
                         profile.getSports().stream().map(UserSport::getSportId).sorted().toList(),
-                        profile.getGyms().stream().map(UserGym::getGymId).sorted().toList()));
-        return new FeedCandidates(candidates.getContent(), page, size, candidates.hasNext());
+                        profile.getGyms().stream().map(UserGym::getGymId).sorted().toList(),
+                        trainers.contains(profile.getUserId())
+                                ? new ProfileSnapshot.TrainerSnapshot(profile.getHourlyRate())
+                                : null))
+                .toList();
+        return new FeedCandidates(candidates, page, size, found.hasNext());
+    }
+
+    /** Один запрос к identity на страницу ленты; при его недоступности лента показывается без отметок тренеров. */
+    private Set<Long> trainersAmong(List<UserProfile> page) {
+        if (page.isEmpty()) {
+            return Set.of();
+        }
+        try {
+            return users.trainerIds(page.stream().map(UserProfile::getUserId).collect(Collectors.toSet()));
+        } catch (DependencyUnavailableException exception) {
+            return Set.of();
+        }
     }
 
     private UserProfile lockMyProfile() {

@@ -31,7 +31,7 @@ class GymAdminAccessIntegrationTest extends AbstractIntegrationTest {
     @ValueSource(strings = {"update", "delete"})
     void requiresAnExistingUser(String operation) {
         change(operation, null).expectStatus().isUnauthorized();
-        change(operation, Long.MAX_VALUE).expectStatus().isUnauthorized();
+        change(operation, Long.MAX_VALUE, "ADMIN").expectStatus().isUnauthorized();
         assertUnchanged();
     }
 
@@ -59,6 +59,11 @@ class GymAdminAccessIntegrationTest extends AbstractIntegrationTest {
     }
 
     private WebTestClient.ResponseSpec change(String operation, Long userId) {
+        return change(operation, userId, null);
+    }
+
+    /** {@code role} задаёт роль в токене явно — для «админского» токена несуществующего пользователя. */
+    private WebTestClient.ResponseSpec change(String operation, Long userId, String role) {
         String path = "/api/v1/gyms/" + gymId;
         WebTestClient.RequestHeadersSpec<?> request = operation.equals("delete")
                 ? client.delete().uri(path)
@@ -66,7 +71,8 @@ class GymAdminAccessIntegrationTest extends AbstractIntegrationTest {
                         {"name":"Updated","city":"Other city","address":"Other address"}
                         """);
         if (userId != null) {
-            request.header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(userId));
+            request.header(HttpHeaders.AUTHORIZATION,
+                    role == null ? TestTokens.bearer(userId) : TestTokens.bearer(userId, role));
         }
         return request.exchange();
     }

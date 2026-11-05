@@ -3,6 +3,7 @@ package ru.itmo.gymbro.identity.client;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import ru.itmo.gymbro.identity.api.UserDirectory;
+import ru.itmo.gymbro.identity.api.Role;
 import ru.itmo.gymbro.identity.api.UserSnapshot;
 import ru.itmo.gymbro.shared.api.CurrentUserProvider;
 import ru.itmo.gymbro.shared.api.ForbiddenException;
@@ -23,7 +24,7 @@ class RemoteCurrentUserAccessTest {
     @Test
     @DisplayName("Активный пользователь проходит проверку, но прав администратора не получает")
     void activeUserIsNotAdmin() {
-        givenCurrentUser(new UserSnapshot(7, true, false));
+        givenCurrentUser(new UserSnapshot(7, true, false, Role.USER));
 
         assertThat(access.requireActiveUser()).isEqualTo(7);
         assertThatThrownBy(access::requireAdmin)
@@ -34,7 +35,7 @@ class RemoteCurrentUserAccessTest {
     @Test
     @DisplayName("Активный администратор проходит обе проверки")
     void activeAdminPasses() {
-        givenCurrentUser(new UserSnapshot(7, true, true));
+        givenCurrentUser(new UserSnapshot(7, true, true, Role.ADMIN));
 
         assertThat(access.requireActiveUser()).isEqualTo(7);
         assertThat(access.requireAdmin()).isEqualTo(7);
@@ -43,7 +44,7 @@ class RemoteCurrentUserAccessTest {
     @Test
     @DisplayName("Заблокированному пользователю и администратору — 403")
     void bannedUserIsForbidden() {
-        givenCurrentUser(new UserSnapshot(7, false, true));
+        givenCurrentUser(new UserSnapshot(7, false, true, Role.ADMIN));
 
         assertThatThrownBy(access::requireActiveUser).isInstanceOf(ForbiddenException.class);
         assertThatThrownBy(access::requireAdmin).isInstanceOf(ForbiddenException.class);

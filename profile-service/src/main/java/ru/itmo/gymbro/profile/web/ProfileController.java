@@ -18,7 +18,9 @@ import ru.itmo.gymbro.profile.api.ProfileUseCases;
 import ru.itmo.gymbro.profile.api.SavedProfile;
 import ru.itmo.gymbro.profile.dto.ProfileGymsWriteRequest;
 import ru.itmo.gymbro.profile.dto.ProfileResponse;
+import ru.itmo.gymbro.profile.dto.HourlyRateWriteRequest;
 import ru.itmo.gymbro.profile.dto.ProfileSportItem;
+import ru.itmo.gymbro.profile.model.UserProfile;
 import ru.itmo.gymbro.profile.dto.ProfileSportsWriteRequest;
 import ru.itmo.gymbro.profile.dto.ProfileWriteRequest;
 
@@ -38,14 +40,14 @@ class ProfileController {
     @Operation(summary = "Получить анкету по идентификатору пользователя")
     @ApiResponse(responseCode = "200", description = "Анкета найдена")
     ProfileResponse getByUserId(@PathVariable @Positive long userId) {
-        return ProfileResponse.from(profiles.getByUserId(userId));
+        return ProfileResponse.from(profiles.getByUserId(userId), profiles.isVerifiedTrainer(userId));
     }
 
     @PutMapping("/me")
     @Operation(summary = "Создать или изменить свою анкету",
             description = "Текущий пользователь определяется по Bearer-токену. "
                     + "При первом сохранении возвращается 201 и Location, при изменении — 200.")
-    @SecurityRequirement(name = "currentUser")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponse(responseCode = "200", description = "Анкета обновлена")
     @ApiResponse(responseCode = "201", description = "Анкета создана; Location содержит её адрес")
     @ApiResponse(responseCode = "401", description = "Текущий пользователь не определён")
@@ -53,7 +55,7 @@ class ProfileController {
     @ApiResponse(responseCode = "409", description = "Конфликт параллельного создания анкеты")
     ResponseEntity<ProfileResponse> saveMine(@Valid @RequestBody ProfileWriteRequest request) {
         SavedProfile saved = profiles.saveMine(request.getName(), request.getBirthDate(), request.getAbout());
-        ProfileResponse response = ProfileResponse.from(saved.getProfile());
+        ProfileResponse response = withTrainerInfo(saved.getProfile());
         if (saved.isCreated()) {
             return ResponseEntity.created(URI.create("/api/v1/profiles/" + response.getUserId())).body(response);
         }
@@ -64,12 +66,12 @@ class ProfileController {
     @Operation(summary = "Заменить виды спорта в своей анкете",
             description = "Передаётся полный список с уровнем подготовки. "
                     + "Пустой список очищает выбор; повторяющиеся виды спорта запрещены.")
-    @SecurityRequirement(name = "currentUser")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponse(responseCode = "200", description = "Анкета обновлена")
     @ApiResponse(responseCode = "401", description = "Текущий пользователь не определён")
     @ApiResponse(responseCode = "403", description = "Пользователь заблокирован")
     ProfileResponse replaceMySports(@Valid @RequestBody ProfileSportsWriteRequest request) {
-        return ProfileResponse.from(profiles.replaceMySports(
+        return withTrainerInfo(profiles.replaceMySports(
                 request.getSports().stream().map(ProfileSportItem::toUserSport).toList()));
     }
 
@@ -77,11 +79,27 @@ class ProfileController {
     @Operation(summary = "Заменить залы в своей анкете",
             description = "Передаётся полный список gymIds из каталога. Пустой список очищает выбор. "
                     + "Одобрение заявки само по себе этот список не меняет.")
-    @SecurityRequirement(name = "currentUser")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponse(responseCode = "200", description = "Анкета обновлена")
     @ApiResponse(responseCode = "401", description = "Текущий пользователь не определён")
     @ApiResponse(responseCode = "403", description = "Пользователь заблокирован")
     ProfileResponse replaceMyGyms(@Valid @RequestBody ProfileGymsWriteRequest request) {
-        return ProfileResponse.from(profiles.replaceMyGyms(request.getGymIds()));
+        return withTrainerInfo(profiles.replaceMyGyms(request.getGymIds()));
+    }
+
+    @PutMapping("/me/hourly-rate")
+    @Operation(summary = "Указать цену часа занятия (только тренер)",
+            description = "Доступно тренеру с подтверждённым сертификатом. Цена в рублях от 1 до 100000; "
+                    + "null убирает цену. В анкете тренера цена показывается в блоке trainer.")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponse(responseCode = "200", description = "Цена сохранена")
+    @ApiResponse(responseCode = "401", description = "Текущий пользователь не определён")
+    @ApiResponse(responseCode = "403", description = "Пользователь не тренер или заблокирован")
+    ProfileResponse changeMyHourlyRate(@Valid @RequestBody HourlyRateWriteRequest request) {
+        return withTrainerInfo(profiles.changeMyHourlyRate(request.hourlyRate()));
+    }
+
+    private ProfileResponse withTrainerInfo(UserProfile profile) {
+        return ProfileResponse.from(profile, profiles.isVerifiedTrainer(profile.getUserId()));
     }
 }

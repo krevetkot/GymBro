@@ -4,8 +4,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import ru.itmo.gymbro.identity.model.Role;
 import ru.itmo.gymbro.identity.model.User;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,6 +22,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT (COUNT(user) > 0) FROM User user WHERE user.email = LOWER(TRIM(:email))")
     public boolean existsByEmail(String email);
+
+    public List<User> findAllByIdInAndRoleAndDeletedFalse(Collection<Long> ids, Role role);
 
     @Query(value = "SELECT id FROM users WHERE status = 'BANNED' OR deleted", nativeQuery = true)
     public List<Long> findBannedIds();

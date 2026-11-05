@@ -16,6 +16,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
@@ -37,6 +38,8 @@ import java.util.Set;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString(onlyExplicitlyIncluded = true)
 public class UserProfile {
+
+    public static final int MAX_HOURLY_RATE = 100_000;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -71,6 +74,11 @@ public class UserProfile {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinColumn(name = "profile_id", nullable = false)
     private Set<UserGym> gyms;
+
+    /** Цена часа занятия в рублях; указывает только тренер, у остальных — null. */
+    @Positive
+    @Max(MAX_HOURLY_RATE)
+    private Integer hourlyRate;
 
     @NotNull
     private Instant updatedAt;
@@ -130,6 +138,14 @@ public class UserProfile {
 
     public Set<UserGym> getGyms() {
         return Collections.unmodifiableSet(gyms);
+    }
+
+    public void changeHourlyRate(Integer newHourlyRate) {
+        if (newHourlyRate != null && (newHourlyRate <= 0 || newHourlyRate > MAX_HOURLY_RATE)) {
+            throw new IllegalArgumentException("Цена часа должна быть от 1 до " + MAX_HOURLY_RATE + " рублей");
+        }
+        this.hourlyRate = newHourlyRate;
+        touch();
     }
 
     private void touch() {

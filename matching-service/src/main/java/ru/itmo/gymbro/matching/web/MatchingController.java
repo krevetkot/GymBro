@@ -31,7 +31,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1")
 @Tag(name = "Поиск партнёров")
-@SecurityRequirement(name = "currentUser")
+@SecurityRequirement(name = "bearerAuth")
 @ApiResponse(responseCode = "401", description = "Текущий пользователь не определён")
 @ApiResponse(responseCode = "403", description = "Пользователь заблокирован")
 @RequiredArgsConstructor

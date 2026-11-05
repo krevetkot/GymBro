@@ -3,6 +3,7 @@ package ru.itmo.gymbro.identity.client;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import ru.itmo.gymbro.identity.api.UserSnapshot;
 
 import java.util.Set;
@@ -15,4 +16,7 @@ public interface IdentityClient {
 
     @GetMapping("/internal/v1/users/banned-ids")
     Set<Long> bannedUserIds();
+
+    @GetMapping("/internal/v1/users/trainer-ids")
+    Set<Long> trainerIds(@RequestParam("ids") Set<Long> ids);
 }

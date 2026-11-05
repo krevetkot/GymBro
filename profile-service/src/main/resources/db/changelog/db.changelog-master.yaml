@@ -1,3 +1,5 @@
 databaseChangeLog:
   - include:
       file: db/changelog/modules/03-profile.yaml
+  - include:
+      file: db/changelog/modules/04-trainer-hourly-rate.yaml

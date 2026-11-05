@@ -33,7 +33,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/gym-requests")
 @Tag(name = "Заявки на добавление залов")
-@SecurityRequirement(name = "currentUser")
+@SecurityRequirement(name = "bearerAuth")
 @ApiResponse(responseCode = "400", description = "Некорректные поля или параметры")
 @ApiResponse(responseCode = "401", description = "Нет действительного Bearer-токена или пользователь не существует")
 @ApiResponse(responseCode = "403", description = "Пользователь заблокирован или недостаточно прав")

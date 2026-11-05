@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: profile-005-trainer-hourly-rate
+      author: gymbro
+      changes:
+        - sql:
+            sql: |
+              ALTER TABLE user_profiles ADD COLUMN hourly_rate INTEGER;
+              ALTER TABLE user_profiles ADD CONSTRAINT user_profiles_hourly_rate_check
+                  CHECK (hourly_rate IS NULL OR hourly_rate BETWEEN 1 AND 100000);
+      rollback:
+        - sql:
+            sql: ALTER TABLE user_profiles DROP COLUMN hourly_rate

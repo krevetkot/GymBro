@@ -16,6 +16,7 @@ public class FeedCardResponse {
     private final String about;
     private final List<Long> sportIds;
     private final List<Long> gymIds;
+    private final TrainerInfo trainer;
 
     public static FeedCardResponse from(ProfileSnapshot profile) {
         return new FeedCardResponse(
@@ -24,6 +25,7 @@ public class FeedCardResponse {
                 profile.age(),
                 profile.about(),
                 List.copyOf(profile.sportIds()),
-                List.copyOf(profile.gymIds()));
+                List.copyOf(profile.gymIds()),
+                TrainerInfo.from(profile.trainer()));
     }
 }

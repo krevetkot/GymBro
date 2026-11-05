@@ -75,7 +75,7 @@ class GymController {
         return gyms.getPage(pageable).map(page -> PageResponses.withTotalCount(page.map(GymResponse::from)));
     }
 
-    @SecurityRequirement(name = "currentUser")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponse(responseCode = "401", description = "Текущий пользователь не определён")
     @ApiResponse(responseCode = "403", description = "Требуется активный администратор")
     @PutMapping("/{id}")
@@ -87,7 +87,7 @@ class GymController {
         return gyms.update(id, request.name(), request.city(), request.address()).map(GymResponse::from);
     }
 
-    @SecurityRequirement(name = "currentUser")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponse(responseCode = "401", description = "Текущий пользователь не определён")
     @ApiResponse(responseCode = "403", description = "Требуется активный администратор")
     @DeleteMapping("/{id}")

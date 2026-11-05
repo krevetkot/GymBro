@@ -22,6 +22,12 @@ public class TestProfiles implements ProfileDirectory {
         profiles.put(userId, new ProfileSnapshot(userId, "user" + userId, 25, "О себе", sportIds, gymIds));
     }
 
+    /** Анкета тренера с подтверждённым сертификатом — такой её отдаёт profile-service. */
+    public void addTrainer(long userId, Integer hourlyRate) {
+        profiles.put(userId, new ProfileSnapshot(userId, "coach" + userId, 30, "Тренер", List.of(), List.of(),
+                new ProfileSnapshot.TrainerSnapshot(hourlyRate)));
+    }
+
     public void remove(long userId) {
         profiles.remove(userId);
     }

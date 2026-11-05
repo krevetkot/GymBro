@@ -31,6 +31,15 @@ class RemoteCurrentUserAccess implements CurrentUserAccess {
         return user.id();
     }
 
+    @Override
+    public long requireTrainer() {
+        UserSnapshot user = activeCurrentUser();
+        if (!user.isTrainer()) {
+            throw new ForbiddenException("Цену занятия указывает только тренер с подтверждённым сертификатом");
+        }
+        return user.id();
+    }
+
     private UserSnapshot activeCurrentUser() {
         long id = currentUser.currentUserId();
         UserSnapshot user;

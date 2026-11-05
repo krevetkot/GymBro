@@ -75,7 +75,8 @@ class GymRequestApiIntegrationTest extends AbstractIntegrationTest {
     @ValueSource(strings = {"abc", "-1", "0", "999999999999999999"})
     void rejectsInvalidOrUnknownCurrentUser(String userId) {
         submit(userId, BODY).expectStatus().isUnauthorized();
-        list(userId, "").expectStatus().isUnauthorized();
+        client.get().uri(PATH).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(userId, "ADMIN"))
+                .exchange().expectStatus().isUnauthorized();
     }
 
     @Test

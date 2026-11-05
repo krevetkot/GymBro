@@ -37,13 +37,21 @@ public final class TestTokens {
 
     /** Токен с явно указанной ролью: например, выданный до того, как роль сменили. */
     public static String bearer(long userId, String role) {
-        return "Bearer " + token(SECRET, ISSUER, Long.toString(userId), role,
-                Instant.now(), Instant.now().plusSeconds(3600));
+        return bearer(Long.toString(userId), role);
     }
 
-    /** Подписанный токен с произвольным {@code sub}: для проверок некорректного субъекта. */
+    /** Подписанный токен с произвольным {@code sub}; роль — как у пользователя с таким id, иначе USER. */
     public static String bearer(String subject) {
-        return "Bearer " + token(SECRET, ISSUER, subject, "USER", Instant.now(), Instant.now().plusSeconds(3600));
+        String role = subject.matches("[1-9][0-9]{0,17}") ? ROLES.getOrDefault(Long.parseLong(subject), "USER") : "USER";
+        return bearer(subject, role);
+    }
+
+    /**
+     * Подписанный токен с произвольными {@code sub} и ролью: например, «админский» токен с несуществующим
+     * или некорректным субъектом — фильтр по роли его пропустит, а сервис должен отказать (401).
+     */
+    public static String bearer(String subject, String role) {
+        return "Bearer " + token(SECRET, ISSUER, subject, role, Instant.now(), Instant.now().plusSeconds(3600));
     }
 
     public static String expired(long userId) {

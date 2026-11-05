@@ -9,4 +9,7 @@ public interface UserDirectory {
     public Mono<UserSnapshot> getSnapshot(long id);
 
     public Mono<Set<Long>> bannedUserIds();
+
+    /** Кто из перечисленных пользователей — тренер с подтверждённым сертификатом (роль TRAINER). */
+    public Mono<Set<Long>> trainerIds(Set<Long> ids);
 }

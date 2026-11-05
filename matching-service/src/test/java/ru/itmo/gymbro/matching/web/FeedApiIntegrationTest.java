@@ -97,6 +97,22 @@ class FeedApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("Тренер в ленте выделен: подтверждённый сертификат и цена часа; у обычной карточки блока нет")
+    void highlightsTrainers() throws Exception {
+        long trainer = testUsers.active();
+        testProfiles.addTrainer(trainer, 2500);
+
+        String json = mvc.perform(get(FEED).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(viewer)).param("size", "50"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        String card = "$.items[?(@.userId == " + trainer + ")]";
+        assertThat(JsonPath.<List<Boolean>>read(json, card + ".trainer.certificateVerified")).containsExactly(true);
+        assertThat(JsonPath.<List<Integer>>read(json, card + ".trainer.hourlyRate")).containsExactly(2500);
+        assertThat(JsonPath.<List<Object>>read(json, "$.items[?(@.userId == " + candidate + ")].trainer")).isEmpty();
+    }
+
+    @Test
     @DisplayName("Больше 50 карточек за запрос не отдаётся")
     void capsPageSize() throws Exception {
         mvc.perform(get(FEED).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(viewer)).param("size", "1000"))

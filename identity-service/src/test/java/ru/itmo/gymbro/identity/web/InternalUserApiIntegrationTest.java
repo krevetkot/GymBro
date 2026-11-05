@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.itmo.gymbro.AbstractIntegrationTest;
+import ru.itmo.gymbro.identity.model.Role;
 import ru.itmo.gymbro.identity.model.User;
 import ru.itmo.gymbro.identity.repository.UserRepository;
 
@@ -76,5 +77,27 @@ class InternalUserApiIntegrationTest extends AbstractIntegrationTest {
                 .jsonPath("$").value(hasItem((int) banned))
                 .jsonPath("$").value(hasItem((int) deleted))
                 .jsonPath("$").value(not(hasItem((int) active)));
+    }
+
+    @Test
+    @DisplayName("Из переданных пользователей возвращаются только тренеры, удалённые — нет")
+    void listsTrainerIds() {
+        User trainerUser = User.register(marker + "-coach@mail.ru", "hash");
+        trainerUser.changeRole(Role.TRAINER);
+        long trainer = users.save(trainerUser).getId();
+        User goneTrainerUser = User.register(marker + "-gone-coach@mail.ru", "hash");
+        goneTrainerUser.changeRole(Role.TRAINER);
+        goneTrainerUser.delete();
+        long goneTrainer = users.save(goneTrainerUser).getId();
+        long plain = users.save(User.register(marker + "-plain@mail.ru", "hash")).getId();
+
+        client.get().uri(INTERNAL_USERS + "/trainer-ids?ids=" + trainer + "," + goneTrainer + "," + plain).exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.length()").isEqualTo(1)
+                .jsonPath("$[0]").isEqualTo(trainer);
+        client.get().uri(INTERNAL_USERS + "/trainer-ids").exchange()
+                .expectStatus().isOk()
+                .expectBody().jsonPath("$.length()").isEqualTo(0);
     }
 }

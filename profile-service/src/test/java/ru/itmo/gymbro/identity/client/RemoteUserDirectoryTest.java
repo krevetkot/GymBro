@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import ru.itmo.gymbro.AbstractIntegrationTest;
+import ru.itmo.gymbro.identity.api.Role;
 import ru.itmo.gymbro.identity.api.UserSnapshot;
 import ru.itmo.gymbro.shared.api.DependencyUnavailableException;
 import ru.itmo.gymbro.shared.api.NotFoundException;
@@ -20,6 +21,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.URI;
+
+import java.util.Set;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -82,7 +85,7 @@ class RemoteUserDirectoryTest extends AbstractIntegrationTest {
         IDENTITY.stubFor(get(urlEqualTo("/internal/v1/users/7"))
                 .willReturn(okJson("{\"id\":7,\"active\":true,\"admin\":true,\"role\":\"ADMIN\"}")));
 
-        assertThat(directory.getSnapshot(7)).isEqualTo(new UserSnapshot(7, true, true));
+        assertThat(directory.getSnapshot(7)).isEqualTo(new UserSnapshot(7, true, true, Role.ADMIN));
     }
 
     @Test
@@ -91,6 +94,15 @@ class RemoteUserDirectoryTest extends AbstractIntegrationTest {
         IDENTITY.stubFor(get(urlEqualTo("/internal/v1/users/banned-ids")).willReturn(okJson("[3,5]")));
 
         assertThat(directory.bannedUserIds()).containsExactlyInAnyOrder(3L, 5L);
+    }
+
+    @Test
+    @DisplayName("Тренеры среди кандидатов читаются одним запросом; пустой список — без запроса")
+    void readsTrainerIds() {
+        IDENTITY.stubFor(get(urlEqualTo("/internal/v1/users/trainer-ids?ids=3")).willReturn(okJson("[3]")));
+
+        assertThat(directory.trainerIds(Set.of(3L))).containsExactly(3L);
+        assertThat(directory.trainerIds(Set.of())).isEmpty();
     }
 
     @Test
