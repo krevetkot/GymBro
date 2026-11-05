@@ -6,12 +6,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import ru.itmo.gymbro.AbstractIntegrationTest;
+import ru.itmo.gymbro.TestTokens;
 import ru.itmo.gymbro.profile.model.SportLevel;
 import ru.itmo.gymbro.profile.model.UserProfile;
 import ru.itmo.gymbro.profile.model.UserSport;
@@ -46,7 +47,7 @@ class ProfileApiIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mvc = securedMvc(context);
         userId = testUsers.active();
     }
 
@@ -100,11 +101,12 @@ class ProfileApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Анкета читается по id пользователя без заголовка X-User-Id")
+    @DisplayName("Чужую анкету по id пользователя читает любой вошедший пользователь")
     void readsProfileByUserId() throws Exception {
         profiles.save(UserProfile.create(userId, "Ксения", BIRTH_DATE, "плаваю"));
+        long reader = testUsers.active();
 
-        mvc.perform(get("/api/v1/profiles/" + userId))
+        mvc.perform(get("/api/v1/profiles/" + userId).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(reader)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(userId))
                 .andExpect(jsonPath("$.name").value("Ксения"))
@@ -114,18 +116,28 @@ class ProfileApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Анкеты нет — 404")
     void returnsNotFoundWithoutProfile() throws Exception {
-        mvc.perform(get("/api/v1/profiles/" + userId)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/profiles/" + userId).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(userId)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Без токена анкету прочитать нельзя — 401")
+    void readingProfileRequiresToken() throws Exception {
+        profiles.save(UserProfile.create(userId, "Ксения", BIRTH_DATE, "плаваю"));
+
+        mvc.perform(get("/api/v1/profiles/" + userId)).andExpect(status().isUnauthorized());
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"abc", "0", "-1"})
     @DisplayName("Идентификатор в пути не положительное число — 400")
     void rejectsInvalidIdentifier(String id) throws Exception {
-        mvc.perform(get("/api/v1/profiles/" + id)).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/profiles/" + id).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(userId)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("Без заголовка X-User-Id редактировать нельзя — 401")
+    @DisplayName("Без токена редактировать нельзя — 401")
     void requiresCurrentUser() throws Exception {
         mvc.perform(put(MY_PROFILE).contentType(MediaType.APPLICATION_JSON)
                         .content(body("Ксения", "2003-05-17", null)))
@@ -165,7 +177,7 @@ class ProfileApiIntegrationTest extends AbstractIntegrationTest {
 
     private ResultActions saveMine(long currentUserId, String name, String birthDate, String about) throws Exception {
         return mvc.perform(put(MY_PROFILE)
-                .header("X-User-Id", currentUserId)
+                .header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(currentUserId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body(name, birthDate, about)));
     }

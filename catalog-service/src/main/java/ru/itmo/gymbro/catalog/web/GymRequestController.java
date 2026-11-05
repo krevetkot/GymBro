@@ -35,7 +35,7 @@ import java.util.List;
 @Tag(name = "Заявки на добавление залов")
 @SecurityRequirement(name = "currentUser")
 @ApiResponse(responseCode = "400", description = "Некорректные поля или параметры")
-@ApiResponse(responseCode = "401", description = "Нет корректного X-User-Id или пользователь не существует")
+@ApiResponse(responseCode = "401", description = "Нет действительного Bearer-токена или пользователь не существует")
 @ApiResponse(responseCode = "403", description = "Пользователь заблокирован или недостаточно прав")
 @RequiredArgsConstructor
 class GymRequestController {
@@ -45,7 +45,7 @@ class GymRequestController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Предложить новый зал",
-            description = "Автор определяется по X-User-Id. Создаётся только заявка в статусе PENDING.")
+            description = "Автор определяется по Bearer-токену. Создаётся только заявка в статусе PENDING.")
     @ApiResponse(responseCode = "201", description = "Заявка создана")
     @ApiResponse(responseCode = "409", description = "Зал по этому адресу уже существует")
     Mono<GymRequestResponse> submit(@Valid @RequestBody GymWriteRequest request) {

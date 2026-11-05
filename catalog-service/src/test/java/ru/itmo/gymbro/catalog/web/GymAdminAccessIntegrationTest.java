@@ -4,9 +4,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import ru.itmo.gymbro.AbstractIntegrationTest;
+import ru.itmo.gymbro.TestTokens;
 import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.repository.GymRepository;
 
@@ -64,7 +66,7 @@ class GymAdminAccessIntegrationTest extends AbstractIntegrationTest {
                         {"name":"Updated","city":"Other city","address":"Other address"}
                         """);
         if (userId != null) {
-            request.header("X-User-Id", String.valueOf(userId));
+            request.header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(userId));
         }
         return request.exchange();
     }

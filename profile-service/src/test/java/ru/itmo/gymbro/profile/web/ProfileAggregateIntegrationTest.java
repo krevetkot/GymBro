@@ -6,15 +6,16 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 import ru.itmo.gymbro.AbstractIntegrationTest;
+import ru.itmo.gymbro.TestTokens;
 import ru.itmo.gymbro.profile.model.SportLevel;
 import ru.itmo.gymbro.profile.model.UserGym;
 import ru.itmo.gymbro.profile.model.UserProfile;
@@ -60,7 +61,7 @@ class ProfileAggregateIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mvc = securedMvc(context);
         marker = UUID.randomUUID().toString();
         userId = testUsers.active();
         gymId = testCatalog.gym();
@@ -191,7 +192,7 @@ class ProfileAggregateIntegrationTest extends AbstractIntegrationTest {
 
     private int status(MockHttpServletRequestBuilder request,
                        String body) throws Exception {
-        request.header("X-User-Id", userId);
+        request.header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(userId));
         if (body != null) {
             request.contentType(MediaType.APPLICATION_JSON).content(body);
         }

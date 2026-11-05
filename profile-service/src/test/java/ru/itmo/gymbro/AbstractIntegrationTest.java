@@ -8,8 +8,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.WebApplicationContext;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import jakarta.servlet.Filter;
 
 @SpringBootTest
 @Transactional
@@ -33,6 +37,14 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
+        registry.add("gymbro.jwt.secret", () -> TestTokens.SECRET);
+    }
+
+    /** MockMvc с цепочкой фильтров Spring Security: запросы проходят проверку JWT, как в работающем сервисе. */
+    protected static MockMvc securedMvc(WebApplicationContext context) {
+        return MockMvcBuilders.webAppContextSetup(context)
+                .addFilters(context.getBean("springSecurityFilterChain", Filter.class))
+                .build();
     }
 
     @TestConfiguration(proxyBeanMethods = false)

@@ -40,7 +40,6 @@ class GymController {
 
     private final GymUseCases gyms;
 
-    @SecurityRequirements
     @PostMapping
     @Operation(summary = "Создать запись в каталоге")
     @ApiResponse(responseCode = "201", description = "Запись создана",

@@ -55,7 +55,7 @@ class MatchingController {
     @PostMapping("/likes")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Поставить лайк пользователю",
-            description = "Отправитель определяется по X-User-Id. В одной транзакции сохраняется лайк и, "
+            description = "Отправитель определяется по Bearer-токену. В одной транзакции сохраняется лайк и, "
                     + "при встречном лайке, создаётся совпадение. "
                     + "Пара пользователей блокируется до завершения транзакции.")
     @ApiResponse(responseCode = "201", description = "Лайк создан; ответ указывает наличие совпадения")

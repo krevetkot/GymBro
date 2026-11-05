@@ -173,8 +173,8 @@ flowchart LR
   а каждое обращение к JPA-репозиторию выполняется через `BlockingJpa`: `TransactionTemplate`
   внутри `Mono.fromCallable(...).subscribeOn(Schedulers.boundedElastic())`. Так блокирующий
   JDBC не занимает потоки event loop.
-- В обоих сервисах текущий пользователь (`X-User-Id`) берётся из контекста Reactor,
-  а не из потока запроса.
+- В обоих сервисах текущий пользователь (субъект JWT) берётся из `ReactiveSecurityContextHolder`
+  в контексте Reactor, а не из потока запроса.
 
 ### Слои внутри сервиса
 
@@ -207,8 +207,9 @@ docker compose up --build -d
 | Eureka (зарегистрированные сервисы) | http://localhost:8761 |
 | Базы identity / catalog / profile / matching | `localhost:5434` / `5435` / `5436` / `5437` |
 
-Текущий пользователь передаётся заголовком `X-User-Id` (в Swagger — кнопка Authorize).
-Администратор из миграции — `admin@gymbro.local`.
+Текущий пользователь определяется по JWT в заголовке `Authorization: Bearer <токен>`. Токен
+выдаёт `POST /api/v1/auth/login`, проверяет его каждый сервис общим секретом `JWT_SECRET_BASE64`
+из `.env`. В Swagger — кнопка Authorize. Администратор из миграции — `admin@gymbro.local` / `admin12345`.
 
 Проверка Circuit Breaker: `docker compose stop profile-service`. Лента
 (`GET /api/v1/feed`) вернёт пустую страницу, а `GET /api/v1/profiles/{id}` — 503 из fallback

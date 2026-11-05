@@ -5,10 +5,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import ru.itmo.gymbro.AbstractIntegrationTest;
+import ru.itmo.gymbro.TestTokens;
 import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.model.GymRequest;
 import ru.itmo.gymbro.catalog.model.RequestStatus;
@@ -150,11 +152,11 @@ class GymRequestApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     private WebTestClient.ResponseSpec submit(String userId, String body) {
-        return client.post().uri(PATH).header("X-User-Id", userId)
+        return client.post().uri(PATH).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(userId))
                 .contentType(MediaType.APPLICATION_JSON).bodyValue(body).exchange();
     }
 
     private WebTestClient.ResponseSpec list(String userId, String query) {
-        return client.get().uri(PATH + query).header("X-User-Id", userId).exchange();
+        return client.get().uri(PATH + query).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(userId)).exchange();
     }
 }

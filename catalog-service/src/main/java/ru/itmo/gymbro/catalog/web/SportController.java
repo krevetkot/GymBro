@@ -33,7 +33,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/sports")
 @Tag(name = "Виды спорта")
-@SecurityRequirements
 @ApiResponse(responseCode = "400", description = "Некорректные поля или параметры запроса")
 @RequiredArgsConstructor
 class SportController {
@@ -50,6 +49,7 @@ class SportController {
     }
 
     @GetMapping
+    @SecurityRequirements
     @Operation(summary = "Получить страницу видов спорта",
             description = "Нумерация страниц с нуля, размер по умолчанию 20, максимум 50. "
                     + "Общее число записей — в X-Total-Count. Поля сортировки: id, name.")

@@ -7,10 +7,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import ru.itmo.gymbro.AbstractIntegrationTest;
+import ru.itmo.gymbro.TestTokens;
 import ru.itmo.gymbro.catalog.model.Gym;
 import ru.itmo.gymbro.catalog.repository.GymRepository;
 
@@ -173,12 +175,12 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     private WebTestClient.ResponseSpec write(WebTestClient.RequestBodyUriSpec method, String uri, String body) {
-        return method.uri(uri).header("X-User-Id", String.valueOf(adminId))
+        return method.uri(uri).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(adminId))
                 .contentType(MediaType.APPLICATION_JSON).bodyValue(body).exchange();
     }
 
     private WebTestClient.ResponseSpec delete(String uri) {
-        return client.delete().uri(uri).header("X-User-Id", String.valueOf(adminId)).exchange();
+        return client.delete().uri(uri).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(adminId)).exchange();
     }
 
     private long create(String path, String body) {

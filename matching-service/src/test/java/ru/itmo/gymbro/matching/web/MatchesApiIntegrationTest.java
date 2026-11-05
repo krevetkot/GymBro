@@ -4,10 +4,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import ru.itmo.gymbro.AbstractIntegrationTest;
+import ru.itmo.gymbro.TestTokens;
 import ru.itmo.gymbro.matching.model.Match;
 import ru.itmo.gymbro.matching.repository.MatchRepository;
 
@@ -39,7 +40,7 @@ class MatchesApiIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mvc = securedMvc(context);
         viewer = newUser();
         older = newUser();
         newer = newUser();
@@ -53,7 +54,7 @@ class MatchesApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Список мэтчей: только свои, партнёр с любой стороны пары, сначала новые")
     void listsOwnMatchesNewestFirst() throws Exception {
-        mvc.perform(get(MATCHES).header("X-User-Id", viewer))
+        mvc.perform(get(MATCHES).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(viewer)))
                 .andExpect(status().isOk())
                 .andExpect(header().string("X-Total-Count", "2"))
                 .andExpect(jsonPath("$", hasSize(2)))
@@ -65,7 +66,7 @@ class MatchesApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Страницы: размер из запроса, общее количество в заголовке")
     void pagesMatches() throws Exception {
-        mvc.perform(get(MATCHES).header("X-User-Id", viewer).param("size", "1").param("page", "1"))
+        mvc.perform(get(MATCHES).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(viewer)).param("size", "1").param("page", "1"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("X-Total-Count", "2"))
                 .andExpect(jsonPath("$", hasSize(1)))
@@ -75,7 +76,7 @@ class MatchesApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Сортировка из запроса игнорируется, больше 50 записей не отдаётся")
     void ignoresClientSortAndCapsSize() throws Exception {
-        mvc.perform(get(MATCHES).header("X-User-Id", viewer).param("sort", "user1Id,asc").param("size", "1000"))
+        mvc.perform(get(MATCHES).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(viewer)).param("sort", "user1Id,asc").param("size", "1000"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].partnerUserId", contains((int) newer, (int) older)));
     }
@@ -85,20 +86,20 @@ class MatchesApiIntegrationTest extends AbstractIntegrationTest {
     void returnsEmptyListWithoutMatches() throws Exception {
         long lonely = newUser();
 
-        mvc.perform(get(MATCHES).header("X-User-Id", lonely))
+        mvc.perform(get(MATCHES).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(lonely)))
                 .andExpect(status().isOk())
                 .andExpect(header().string("X-Total-Count", "0"))
                 .andExpect(jsonPath("$", hasSize(0)));
     }
 
     @Test
-    @DisplayName("Без X-User-Id — 401, забаненный пользователь — 403")
+    @DisplayName("Без токена — 401, забаненный пользователь — 403")
     void checksCurrentUser() throws Exception {
         mvc.perform(get(MATCHES)).andExpect(status().isUnauthorized());
 
         testUsers.ban(viewer);
 
-        mvc.perform(get(MATCHES).header("X-User-Id", viewer)).andExpect(status().isForbidden());
+        mvc.perform(get(MATCHES).header(HttpHeaders.AUTHORIZATION, TestTokens.bearer(viewer))).andExpect(status().isForbidden());
     }
 
     private long newUser() {

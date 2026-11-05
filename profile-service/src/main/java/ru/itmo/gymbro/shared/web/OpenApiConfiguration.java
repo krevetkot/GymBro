@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 class OpenApiConfiguration {
 
-    static final String CURRENT_USER_SCHEME = "currentUser";
+    static final String BEARER_SCHEME = "bearerAuth";
 
     @Bean
     OpenAPI gymBroOpenApi() {
@@ -24,13 +24,11 @@ class OpenApiConfiguration {
                                 + "каталог видов спорта и залов, анкеты, лайки и мэтчи. "
                                 + "Списки отдаются постранично, не больше 50 записей за запрос."))
                 .components(new Components()
-                        .addSecuritySchemes(CURRENT_USER_SCHEME, new SecurityScheme()
-                                .type(SecurityScheme.Type.APIKEY)
-                                .in(SecurityScheme.In.HEADER)
-                                .name(HeaderCurrentUserProvider.USER_ID_HEADER)
-                                .description("Идентификатор текущего пользователя. "
-                                        + "Временная замена JWT до появления spring-security")))
-                .addSecurityItem(new SecurityRequirement().addList(CURRENT_USER_SCHEME))
+                        .addSecuritySchemes(BEARER_SCHEME, new SecurityScheme()
+                                .type(SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")))
+                .addSecurityItem(new SecurityRequirement().addList(BEARER_SCHEME))
                 .addServersItem(new Server().url("/").description("Через gateway"));
     }
 }
