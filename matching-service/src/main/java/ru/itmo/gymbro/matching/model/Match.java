@@ -5,33 +5,41 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 import java.time.Instant;
-import java.util.Objects;
 
 @Entity
 @Table(name = "matches")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(onlyExplicitlyIncluded = true)
 public class Match {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @ToString.Include
     private Long id;
 
     @Positive
+    @EqualsAndHashCode.Include
+    @ToString.Include(name = "user1")
     private long user1Id;
 
     @Positive
+    @EqualsAndHashCode.Include
+    @ToString.Include(name = "user2")
     private long user2Id;
 
     @NotNull
     private Instant createdAt;
-
-    protected Match() {
-    }
 
     public Match(Long id, long user1Id, long user2Id, Instant createdAt) {
         if (user1Id <= 0 || user2Id <= 0) {
@@ -64,26 +72,5 @@ public class Match {
             return user1Id;
         }
         throw new IllegalArgumentException("Пользователь не участвует в этом мэтче");
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (this == other) {
-            return true;
-        }
-        if (!(other instanceof Match match)) {
-            return false;
-        }
-        return user1Id == match.user1Id && user2Id == match.user2Id;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(user1Id, user2Id);
-    }
-
-    @Override
-    public String toString() {
-        return "Match{id=" + id + ", user1=" + user1Id + ", user2=" + user2Id + "}";
     }
 }

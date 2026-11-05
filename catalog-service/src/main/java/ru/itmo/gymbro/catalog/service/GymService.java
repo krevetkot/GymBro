@@ -23,7 +23,8 @@ class GymService implements GymUseCases {
 
     @Override
     public Mono<Gym> create(String name, String city, String address) {
-        return Mono.fromCallable(() -> Gym.of(name, city, address))
+        return access.requireAdmin()
+                .then(Mono.fromCallable(() -> Gym.of(name, city, address)))
                 .flatMap(candidate -> requireAddressIsFree(candidate).then(Mono.defer(() -> gyms.save(candidate))));
     }
 

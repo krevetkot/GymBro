@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: identity-007-certificates
+      author: gymbro
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE certificates (
+                  id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                  trainer_id  BIGINT       NOT NULL REFERENCES users (id),
+                  sport_id    BIGINT       NOT NULL,
+                  file_url    VARCHAR(500) NOT NULL,
+                  status      VARCHAR(16)  NOT NULL,
+                  reviewed_by BIGINT       REFERENCES users (id),
+                  created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
+                  CONSTRAINT certificates_status_check CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
+                  CONSTRAINT certificates_review_check CHECK ((status = 'PENDING') = (reviewed_by IS NULL))
+              );
+              CREATE INDEX certificates_trainer_idx ON certificates (trainer_id);
+              CREATE UNIQUE INDEX certificates_one_pending_per_sport
+                  ON certificates (trainer_id, sport_id) WHERE status = 'PENDING';
+      rollback:
+        - sql:
+            sql: DROP TABLE certificates

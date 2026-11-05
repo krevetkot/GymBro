@@ -5,3 +5,5 @@ databaseChangeLog:
       file: db/changelog/modules/02-user-lifecycle.yaml
   - include:
       file: db/changelog/modules/03-password-hashes.yaml
+  - include:
+      file: db/changelog/modules/04-certificates.yaml

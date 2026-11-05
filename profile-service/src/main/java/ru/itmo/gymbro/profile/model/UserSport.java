@@ -8,15 +8,20 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-
-import java.util.Objects;
 
 @Entity
 @Table(name = "user_sports")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(onlyExplicitlyIncluded = true)
 public class UserSport {
 
     @Id
@@ -24,15 +29,15 @@ public class UserSport {
     private Long id;
 
     @Positive
+    @EqualsAndHashCode.Include
+    @ToString.Include
     private long sportId;
 
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(length = 16)
+    @ToString.Include
     private SportLevel level;
-
-    protected UserSport() {
-    }
 
     public UserSport(Long id, long sportId, SportLevel level) {
         if (sportId <= 0) {
@@ -52,26 +57,5 @@ public class UserSport {
 
     void changeLevel(SportLevel newLevel) {
         this.level = newLevel;
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (this == other) {
-            return true;
-        }
-        if (!(other instanceof UserSport sport)) {
-            return false;
-        }
-        return sportId == sport.sportId;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(sportId);
-    }
-
-    @Override
-    public String toString() {
-        return "UserSport{sportId=" + sportId + ", level=" + level + "}";
     }
 }

@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import ru.itmo.gymbro.AbstractIntegrationTest;
+import ru.itmo.gymbro.identity.api.Role;
 import ru.itmo.gymbro.identity.api.UserSnapshot;
 import ru.itmo.gymbro.shared.api.DependencyUnavailableException;
 import ru.itmo.gymbro.shared.api.NotFoundException;
@@ -80,9 +81,9 @@ class RemoteUserDirectoryTest extends AbstractIntegrationTest {
     @DisplayName("Снапшот пользователя читается из ответа identity")
     void readsSnapshot() {
         IDENTITY.stubFor(get(urlEqualTo("/internal/v1/users/7"))
-                .willReturn(okJson("{\"id\":7,\"active\":true,\"admin\":true}")));
+                .willReturn(okJson("{\"id\":7,\"active\":true,\"admin\":false,\"role\":\"TRAINER\"}")));
 
-        assertThat(directory.getSnapshot(7).block()).isEqualTo(new UserSnapshot(7, true, true));
+        assertThat(directory.getSnapshot(7).block()).isEqualTo(new UserSnapshot(7, true, Role.TRAINER));
     }
 
     @Test

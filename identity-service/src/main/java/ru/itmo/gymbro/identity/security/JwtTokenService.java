@@ -27,7 +27,7 @@ public class JwtTokenService {
                 .subject(user.getId().toString())
                 .issuedAt(issuedAt)
                 .expiresAt(issuedAt.plus(TOKEN_LIFETIME))
-                .claim("role", user.getRole().name())
+                .claim(JwtSecurityConfiguration.ROLE_CLAIM, user.getRole().name())
                 .build();
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
         String token = encoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();

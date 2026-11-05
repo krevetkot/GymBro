@@ -70,16 +70,11 @@ class ColumnLengthValidator implements SmartInitializingSingleton {
     }
 
     @Getter(AccessLevel.PACKAGE)
+    @RequiredArgsConstructor
     static final class ExpectedColumn {
 
         private final String table;
         private final String name;
         private final long length;
-
-        ExpectedColumn(String table, String name, long length) {
-            this.table = table;
-            this.name = name;
-            this.length = length;
-        }
     }
 }

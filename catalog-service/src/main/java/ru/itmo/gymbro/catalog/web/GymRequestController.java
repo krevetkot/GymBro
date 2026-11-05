@@ -53,7 +53,7 @@ class GymRequestController {
     }
 
     @GetMapping
-    @Operation(summary = "Получить страницу заявок (только администратор)",
+    @Operation(summary = "Получить страницу заявок (только ADMIN)",
             description = "Страницы с нуля, по умолчанию 20 записей, максимум 50. "
                     + "По умолчанию новые заявки идут первыми. Поля сортировки: "
                     + "id, authorId, name, city, address, status, createdAt.")
@@ -68,7 +68,7 @@ class GymRequestController {
     }
 
     @PostMapping("/{id}/approve")
-    @Operation(summary = "Одобрить заявку (только администратор)",
+    @Operation(summary = "Одобрить заявку (только ADMIN)",
             description = "В одной транзакции создаёт зал в общем каталоге и одобряет заявку. "
                     + "Профиль автора не изменяется. При существующем зале возвращает 409.")
     @ApiResponse(responseCode = "200", description = "Заявка одобрена, зал создан в каталоге")
@@ -79,7 +79,7 @@ class GymRequestController {
     }
 
     @PostMapping("/{id}/reject")
-    @Operation(summary = "Отклонить заявку (только администратор)",
+    @Operation(summary = "Отклонить заявку (только ADMIN)",
             description = "Меняет статус PENDING на REJECTED и сохраняет администратора. Зал не создаётся.")
     @ApiResponse(responseCode = "200", description = "Заявка отклонена")
     @ApiResponse(responseCode = "404", description = "Заявка не найдена")

@@ -1,5 +1,7 @@
 package ru.itmo.gymbro.shared.client;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import feign.FeignException;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.springframework.cloud.client.circuitbreaker.NoFallbackAvailableException;
@@ -10,10 +12,8 @@ import ru.itmo.gymbro.shared.api.UnauthorizedException;
 
 import java.util.function.Supplier;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class RemoteCalls {
-
-    private RemoteCalls() {
-    }
 
     public static <T> T call(String service, String notFound, Supplier<T> request) {
         T result;

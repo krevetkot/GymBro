@@ -3,6 +3,7 @@ package ru.itmo.gymbro.identity.client;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import ru.itmo.gymbro.identity.api.Role;
 import ru.itmo.gymbro.identity.api.UserDirectory;
 import ru.itmo.gymbro.identity.api.UserSnapshot;
 import ru.itmo.gymbro.shared.api.CurrentUserAccess;
@@ -25,7 +26,7 @@ class RemoteCurrentUserAccess implements CurrentUserAccess {
 
     @Override
     public Mono<Long> requireAdmin() {
-        return activeCurrentUser().flatMap(user -> user.admin()
+        return activeCurrentUser().flatMap(user -> user.hasAnyRole(Role.ADMIN)
                 ? Mono.just(user.id())
                 : Mono.error(new ForbiddenException("Операция доступна только администратору")));
     }

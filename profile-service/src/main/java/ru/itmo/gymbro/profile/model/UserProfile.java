@@ -10,7 +10,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,23 +28,29 @@ import java.time.Period;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
-import java.util.Objects;
 import java.util.Set;
 
 @Entity
 @Table(name = "user_profiles")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(onlyExplicitlyIncluded = true)
 public class UserProfile {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @ToString.Include
     private Long id;
 
     @Positive
+    @EqualsAndHashCode.Include
+    @ToString.Include
     private long userId;
 
     @NotBlank
     @Size(max = 100)
+    @ToString.Include
     private String name;
 
     @NotNull
@@ -64,9 +74,6 @@ public class UserProfile {
 
     @NotNull
     private Instant updatedAt;
-
-    protected UserProfile() {
-    }
 
     public UserProfile(Long id, long userId, String name, LocalDate birthDate, String about,
                        Set<UserSport> sports, Set<UserGym> gyms, Instant updatedAt) {
@@ -148,26 +155,5 @@ public class UserProfile {
 
     private static String normalizeAbout(String value) {
         return (value == null || value.isBlank()) ? null : value.trim();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (this == other) {
-            return true;
-        }
-        if (!(other instanceof UserProfile profile)) {
-            return false;
-        }
-        return userId == profile.userId;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(userId);
-    }
-
-    @Override
-    public String toString() {
-        return "UserProfile{id=" + id + ", userId=" + userId + ", name=" + name + "}";
     }
 }

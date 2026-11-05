@@ -5,16 +5,22 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 import java.time.Instant;
-import java.util.Objects;
 
 @Entity
 @Table(name = "likes")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(onlyExplicitlyIncluded = true)
 public class Like {
 
     @Id
@@ -22,16 +28,17 @@ public class Like {
     private Long id;
 
     @Positive
+    @EqualsAndHashCode.Include
+    @ToString.Include(name = "from")
     private long fromUserId;
 
     @Positive
+    @EqualsAndHashCode.Include
+    @ToString.Include(name = "to")
     private long toUserId;
 
     @NotNull
     private Instant createdAt;
-
-    protected Like() {
-    }
 
     public Like(Long id, long fromUserId, long toUserId, Instant createdAt) {
         if (fromUserId <= 0 || toUserId <= 0) {
@@ -48,26 +55,5 @@ public class Like {
 
     public static Like from(long fromUserId, long toUserId) {
         return new Like(null, fromUserId, toUserId, Instant.now());
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (this == other) {
-            return true;
-        }
-        if (!(other instanceof Like like)) {
-            return false;
-        }
-        return fromUserId == like.fromUserId && toUserId == like.toUserId;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(fromUserId, toUserId);
-    }
-
-    @Override
-    public String toString() {
-        return "Like{from=" + fromUserId + ", to=" + toUserId + "}";
     }
 }

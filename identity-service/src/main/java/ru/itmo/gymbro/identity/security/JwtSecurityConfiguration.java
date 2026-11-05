@@ -15,6 +15,9 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverterAdapter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
@@ -22,6 +25,7 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 public class JwtSecurityConfiguration {
 
     public static final String ISSUER = "gymbro-identity";
+    public static final String ROLE_CLAIM = "role";
 
     @Bean
     SecretKey jwtSecretKey(@Value("${gymbro.jwt.secret}") String encodedSecret) {
@@ -46,6 +50,16 @@ public class JwtSecurityConfiguration {
         return decoder;
     }
 
+    /** Claim {@code role} из токена превращается в authority {@code ROLE_<роль>} для {@code hasRole(...)}. */
+    static JwtAuthenticationConverter roleAuthorities() {
+        JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
+        authorities.setAuthoritiesClaimName(ROLE_CLAIM);
+        authorities.setAuthorityPrefix("ROLE_");
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(authorities);
+        return converter;
+    }
+
     @Bean
     ProblemDetailSecurityErrors securityErrors(ServerCodecConfigurer codecs) {
         return new ProblemDetailSecurityErrors(codecs);
@@ -59,6 +73,13 @@ public class JwtSecurityConfiguration {
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
+                        .pathMatchers(HttpMethod.POST, "/api/v1/users").hasRole("ADMIN")
+                        .pathMatchers(HttpMethod.GET, "/api/v1/users").hasRole("ADMIN")
+                        .pathMatchers(HttpMethod.PATCH, "/api/v1/users/*/role").hasRole("ADMIN")
+                        .pathMatchers(HttpMethod.POST, "/api/v1/certificates").hasAnyRole("USER", "TRAINER")
+                        .pathMatchers(HttpMethod.GET, "/api/v1/certificates").hasRole("ADMIN")
+                        .pathMatchers(HttpMethod.POST, "/api/v1/certificates/*/approve",
+                                "/api/v1/certificates/*/reject").hasRole("ADMIN")
                         .pathMatchers("/internal/v1/users/**", "/actuator/health/**",
                                 "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyExchange().authenticated())
@@ -66,7 +87,8 @@ public class JwtSecurityConfiguration {
                         .authenticationEntryPoint(errors)
                         .accessDeniedHandler(errors))
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> {})
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(
+                                new ReactiveJwtAuthenticationConverterAdapter(roleAuthorities())))
                         .authenticationEntryPoint(errors)
                         .accessDeniedHandler(errors))
                 .build();

@@ -5,14 +5,19 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 import jakarta.validation.constraints.Positive;
-
-import java.util.Objects;
 
 @Entity
 @Table(name = "user_gyms")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(onlyExplicitlyIncluded = true)
 public class UserGym {
 
     @Id
@@ -20,10 +25,9 @@ public class UserGym {
     private Long id;
 
     @Positive
+    @EqualsAndHashCode.Include
+    @ToString.Include
     private long gymId;
-
-    protected UserGym() {
-    }
 
     public UserGym(Long id, long gymId) {
         if (gymId <= 0) {
@@ -35,26 +39,5 @@ public class UserGym {
 
     public static UserGym of(long gymId) {
         return new UserGym(null, gymId);
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (this == other) {
-            return true;
-        }
-        if (!(other instanceof UserGym gym)) {
-            return false;
-        }
-        return gymId == gym.gymId;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(gymId);
-    }
-
-    @Override
-    public String toString() {
-        return "UserGym{gymId=" + gymId + "}";
     }
 }

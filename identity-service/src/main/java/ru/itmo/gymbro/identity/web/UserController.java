@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.identity.api.UserUseCases;
+import ru.itmo.gymbro.identity.dto.ChangeRoleRequest;
 import ru.itmo.gymbro.identity.dto.RegisterUserRequest;
 import ru.itmo.gymbro.identity.dto.UpdateUserRequest;
 import ru.itmo.gymbro.identity.dto.UserResponse;
@@ -42,11 +43,13 @@ class UserController {
 
     @PostMapping
     @Operation(summary = "Зарегистрировать пользователя",
-            description = "Только ADMIN (супервайзер) создаёт активного пользователя с ролью USER.")
+            description = "Только ADMIN (супервайзер) создаёт активного пользователя. "
+                    + "Роль USER или ADMIN; если не указана — USER. Роль TRAINER выдаётся только "
+                    + "одобрением сертификата.")
     @ApiResponse(responseCode = "201", description = "Пользователь создан; Location содержит адрес записи")
     @ApiResponse(responseCode = "409", description = "Email уже занят")
     Mono<ResponseEntity<UserResponse>> register(@Valid @RequestBody RegisterUserRequest request) {
-        return users.register(request.getEmail(), request.getPassword())
+        return users.register(request.getEmail(), request.getPassword(), request.getRole())
                 .map(UserResponse::from)
                 .map(response -> ResponseEntity.created(URI.create("/api/v1/users/" + response.getId())).body(response));
     }
@@ -79,6 +82,19 @@ class UserController {
     @ApiResponse(responseCode = "409", description = "Email уже занят")
     Mono<UserResponse> update(@PathVariable @Positive long id, @Valid @RequestBody UpdateUserRequest request) {
         return users.update(id, request.getEmail(), request.getPassword()).map(UserResponse::from);
+    }
+
+    @PatchMapping("/{id}/role")
+    @Operation(summary = "Назначить роль",
+            description = "Только ADMIN. Можно назначить USER или ADMIN (так же снимается роль TRAINER); "
+                    + "TRAINER выдаётся только одобрением сертификата. "
+                    + "Свою роль менять нельзя, чтобы в системе не пропал последний администратор. "
+                    + "Права сужаются сразу; новые права появятся в токене после повторного входа.")
+    @ApiResponse(responseCode = "200", description = "Роль изменена")
+    @ApiResponse(responseCode = "404", description = "Пользователь не найден")
+    @ApiResponse(responseCode = "409", description = "Попытка изменить собственную роль")
+    Mono<UserResponse> changeRole(@PathVariable @Positive long id, @Valid @RequestBody ChangeRoleRequest request) {
+        return users.changeRole(id, request.role()).map(UserResponse::from);
     }
 
     @DeleteMapping("/{id}")

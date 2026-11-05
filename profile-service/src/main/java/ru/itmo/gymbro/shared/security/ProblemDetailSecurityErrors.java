@@ -1,5 +1,6 @@
 package ru.itmo.gymbro.shared.security;
 
+import lombok.RequiredArgsConstructor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
@@ -15,13 +16,10 @@ import ru.itmo.gymbro.shared.api.UnauthorizedException;
  * Отказы Spring Security (нет токена, токен недействителен, не хватает прав) передаются
  * общему обработчику ошибок и отдаются тем же {@code ProblemDetail}, что и остальные ошибки API.
  */
+@RequiredArgsConstructor
 class ProblemDetailSecurityErrors implements AuthenticationEntryPoint, AccessDeniedHandler {
 
     private final HandlerExceptionResolver resolver;
-
-    ProblemDetailSecurityErrors(HandlerExceptionResolver resolver) {
-        this.resolver = resolver;
-    }
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,

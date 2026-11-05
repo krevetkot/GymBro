@@ -41,7 +41,8 @@ class GymController {
     private final GymUseCases gyms;
 
     @PostMapping
-    @Operation(summary = "Создать запись в каталоге")
+    @Operation(summary = "Создать запись в каталоге (только ADMIN)")
+    @ApiResponse(responseCode = "403", description = "Требуется активный администратор")
     @ApiResponse(responseCode = "201", description = "Запись создана",
             headers = @Header(name = "Location", description = "Адрес созданной записи",
                     schema = @Schema(type = "string")))

@@ -11,6 +11,7 @@ import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.identity.api.UserDirectory;
 import ru.itmo.gymbro.identity.api.UserSnapshot;
 import ru.itmo.gymbro.identity.api.UserUseCases;
+import ru.itmo.gymbro.identity.model.Role;
 import ru.itmo.gymbro.identity.model.User;
 import ru.itmo.gymbro.identity.repository.UserRepository;
 import ru.itmo.gymbro.shared.api.ConflictException;
@@ -33,12 +34,12 @@ class UserService implements UserUseCases, UserDirectory, CurrentUserAccess {
     private final PasswordEncoder passwordEncoder;
 
     @Override
-    public Mono<User> register(String email, String password) {
-        return requireAdmin().then(jpa.write(() -> {
+    public Mono<User> register(String email, String password, Role role) {
+        return requireAdmin().then(Mono.fromRunnable(() -> requireAssignable(role))).then(jpa.write(() -> {
             if (users.existsByEmail(email)) {
                 throw new ConflictException("Пользователь с email " + email + " уже зарегистрирован");
             }
-            return users.save(User.register(email, encodePassword(password)));
+            return users.save(User.register(email, encodePassword(password), role == null ? Role.USER : role));
         }));
     }
 
@@ -81,9 +82,24 @@ class UserService implements UserUseCases, UserDirectory, CurrentUserAccess {
     }
 
     @Override
+    public Mono<User> changeRole(long id, Role role) {
+        return requireAdmin().flatMap(adminId -> {
+            if (adminId == id) {
+                return Mono.error(new ConflictException("Нельзя менять собственную роль"));
+            }
+            requireAssignable(role);
+            return jpa.write(() -> {
+                User user = findActive(id);
+                user.changeRole(role);
+                return users.save(user);
+            });
+        });
+    }
+
+    @Override
     public Mono<UserSnapshot> getSnapshot(long id) {
         return jpa.read(() -> findActive(id))
-                .map(user -> new UserSnapshot(user.getId(), user.isActive(), user.isAdmin()));
+                .map(user -> new UserSnapshot(user.getId(), user.isActive(), user.isAdmin(), user.getRole()));
     }
 
     @Override
@@ -117,6 +133,13 @@ class UserService implements UserUseCases, UserDirectory, CurrentUserAccess {
                 .flatMap(user -> user.isActive()
                         ? Mono.just(user)
                         : Mono.error(new ForbiddenException("Пользователь заблокирован")));
+    }
+
+    /** Роль TRAINER выдаётся только одобрением сертификата, напрямую её назначить нельзя. */
+    private static void requireAssignable(Role role) {
+        if (role == Role.TRAINER) {
+            throw new IllegalArgumentException("Роль TRAINER выдаётся только через одобренный сертификат");
+        }
     }
 
     private User findActive(long id) {

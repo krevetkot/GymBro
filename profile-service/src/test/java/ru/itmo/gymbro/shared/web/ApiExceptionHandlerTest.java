@@ -1,5 +1,6 @@
 package ru.itmo.gymbro.shared.web;
 
+import lombok.Getter;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
 import jakarta.validation.Validation;
@@ -197,13 +198,10 @@ class ApiExceptionHandlerTest {
         }
     }
 
+    @Getter
     static class NamedBody {
 
         @NotBlank
         private String name;
-
-        public String getName() {
-            return name;
-        }
     }
 }

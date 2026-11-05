@@ -1,5 +1,7 @@
 package ru.itmo.gymbro;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.time.Instant;
 import java.util.Base64;
@@ -14,14 +16,12 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 /**
  * Выпускает JWT так же, как identity-service, но тестовым секретом.
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TestTokens {
 
     public static final String SECRET = "9VoyJYlyob2NakCY+RZD/RsOg8ImpSVI4ENBgpmvi/U=";
     private static final String FOREIGN_SECRET = "s1y8n2C4bXQx0b0WvJq3l6Fv2rS8hT1mZ5uK9pD7eGc=";
     private static final String ISSUER = "gymbro-identity";
-
-    private TestTokens() {
-    }
 
     public static String bearer(long userId) {
         return bearer(Long.toString(userId));

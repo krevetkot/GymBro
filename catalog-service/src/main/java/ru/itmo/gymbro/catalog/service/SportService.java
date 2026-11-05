@@ -9,6 +9,7 @@ import ru.itmo.gymbro.catalog.api.SportUseCases;
 import ru.itmo.gymbro.catalog.model.Sport;
 import ru.itmo.gymbro.catalog.repository.SportRepository;
 import ru.itmo.gymbro.shared.api.ConflictException;
+import ru.itmo.gymbro.shared.api.CurrentUserAccess;
 import ru.itmo.gymbro.shared.api.NotFoundException;
 
 import java.util.Set;
@@ -18,10 +19,12 @@ import java.util.Set;
 class SportService implements SportUseCases {
 
     private final SportRepository sports;
+    private final CurrentUserAccess access;
 
     @Override
     public Mono<Sport> create(String name) {
-        return Mono.fromCallable(() -> Sport.of(name))
+        return access.requireAdmin()
+                .then(Mono.fromCallable(() -> Sport.of(name)))
                 .flatMap(candidate -> sports.existsByName(candidate.getName())
                         .flatMap(exists -> exists
                                 ? Mono.error(new ConflictException("Вид спорта с таким названием уже существует"))
@@ -41,6 +44,8 @@ class SportService implements SportUseCases {
 
     @Override
     public Mono<Void> delete(long id) {
-        return getById(id).flatMap(sports::delete);
+        return access.requireAdmin()
+                .then(Mono.defer(() -> getById(id)))
+                .flatMap(sports::delete);
     }
 }

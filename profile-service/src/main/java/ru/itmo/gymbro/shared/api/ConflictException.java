@@ -1,8 +1,7 @@
 package ru.itmo.gymbro.shared.api;
 
-public class ConflictException extends RuntimeException {
+import lombok.experimental.StandardException;
 
-    public ConflictException(String message) {
-        super(message);
-    }
+@StandardException
+public class ConflictException extends RuntimeException {
 }

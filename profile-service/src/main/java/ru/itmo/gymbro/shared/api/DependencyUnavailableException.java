@@ -1,12 +1,7 @@
 package ru.itmo.gymbro.shared.api;
 
+import lombok.experimental.StandardException;
+
+@StandardException
 public class DependencyUnavailableException extends RuntimeException {
-
-    public DependencyUnavailableException(String message) {
-        super(message);
-    }
-
-    public DependencyUnavailableException(String message, Throwable cause) {
-        super(message, cause);
-    }
 }

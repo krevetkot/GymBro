@@ -1,6 +1,7 @@
 package ru.itmo.gymbro.profile.dto;
 
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import ru.itmo.gymbro.profile.model.UserGym;
 import ru.itmo.gymbro.profile.model.UserProfile;
 
@@ -9,6 +10,7 @@ import java.util.Comparator;
 import java.util.List;
 
 @Getter
+@RequiredArgsConstructor
 public class ProfileResponse {
 
     private final long userId;
@@ -18,17 +20,6 @@ public class ProfileResponse {
     private final List<ProfileSportItem> sports;
     private final List<Long> gymIds;
     private final Instant updatedAt;
-
-    public ProfileResponse(long userId, String name, int age, String about,
-                           List<ProfileSportItem> sports, List<Long> gymIds, Instant updatedAt) {
-        this.userId = userId;
-        this.name = name;
-        this.age = age;
-        this.about = about;
-        this.sports = List.copyOf(sports);
-        this.gymIds = List.copyOf(gymIds);
-        this.updatedAt = updatedAt;
-    }
 
     public static ProfileResponse from(UserProfile profile) {
         return new ProfileResponse(

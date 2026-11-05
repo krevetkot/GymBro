@@ -1,8 +1,7 @@
 package ru.itmo.gymbro.shared.api;
 
-public class UnauthorizedException extends RuntimeException {
+import lombok.experimental.StandardException;
 
-    public UnauthorizedException(String message) {
-        super(message);
-    }
+@StandardException
+public class UnauthorizedException extends RuntimeException {
 }

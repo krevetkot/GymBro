@@ -1,34 +1,42 @@
 package ru.itmo.gymbro.catalog.model;
 
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-import java.util.Objects;
-
 @Table(name = "gyms")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(onlyExplicitlyIncluded = true)
 public class Gym {
 
     @Id
+    @ToString.Include
     private Long id;
 
     @NotBlank
     @Size(max = 200)
+    @ToString.Include
     private String name;
 
     @NotBlank
     @Size(max = 100)
+    @EqualsAndHashCode.Include
+    @ToString.Include
     private String city;
 
     @NotBlank
     @Size(max = 300)
+    @EqualsAndHashCode.Include
+    @ToString.Include
     private String address;
-
-    protected Gym() {
-    }
 
     public Gym(Long id, String name, String city, String address) {
         this.id = id;
@@ -55,26 +63,5 @@ public class Gym {
             throw new IllegalArgumentException(message);
         }
         return value.trim();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (this == other) {
-            return true;
-        }
-        if (!(other instanceof Gym gym)) {
-            return false;
-        }
-        return city.equals(gym.city) && address.equals(gym.address);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(city, address);
-    }
-
-    @Override
-    public String toString() {
-        return "Gym{id=" + id + ", name=" + name + ", city=" + city + ", address=" + address + "}";
     }
 }

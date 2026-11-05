@@ -1,11 +1,14 @@
 package ru.itmo.gymbro.catalog.service;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import ru.itmo.gymbro.catalog.model.Sport;
 import ru.itmo.gymbro.catalog.repository.SportRepository;
 import ru.itmo.gymbro.shared.api.ConflictException;
+import ru.itmo.gymbro.shared.api.CurrentUserAccess;
+import ru.itmo.gymbro.shared.api.ForbiddenException;
 import ru.itmo.gymbro.shared.api.NotFoundException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -13,12 +16,28 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class SportServiceTest {
 
     private final SportRepository sports = mock(SportRepository.class);
-    private final SportService service = new SportService(sports);
+    private final CurrentUserAccess access = mock(CurrentUserAccess.class);
+    private final SportService service = new SportService(sports, access);
+
+    @BeforeEach
+    void actAsAdmin() {
+        when(access.requireAdmin()).thenReturn(Mono.just(10L));
+    }
+
+    @Test
+    void deniedChangesNeverAccessTheRepository() {
+        when(access.requireAdmin()).thenReturn(Mono.error(new ForbiddenException("Требуется администратор")));
+
+        StepVerifier.create(service.create("Sport")).verifyError(ForbiddenException.class);
+        StepVerifier.create(service.delete(1L)).verifyError(ForbiddenException.class);
+        verifyNoInteractions(sports);
+    }
 
     @Test
     void trimsFieldsBeforeDuplicateCheckAndSave() {

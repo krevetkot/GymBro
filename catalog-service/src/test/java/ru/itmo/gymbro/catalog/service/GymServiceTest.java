@@ -28,6 +28,7 @@ class GymServiceTest {
     void deniedChangesNeverAccessTheRepository() {
         when(access.requireAdmin()).thenReturn(Mono.error(new ForbiddenException("Требуется администратор")));
 
+        StepVerifier.create(service.create("Gym", "City", "Address")).verifyError(ForbiddenException.class);
         StepVerifier.create(service.update(1L, "Gym", "City", "Address")).verifyError(ForbiddenException.class);
         StepVerifier.create(service.delete(1L)).verifyError(ForbiddenException.class);
         verifyNoInteractions(gyms);
@@ -35,6 +36,7 @@ class GymServiceTest {
 
     @Test
     void trimsFieldsBeforeDuplicateCheckAndSave() {
+        when(access.requireAdmin()).thenReturn(Mono.just(10L));
         when(gyms.existsByCityAndAddress("City", "Address")).thenReturn(Mono.just(false));
         when(gyms.save(any(Gym.class))).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
 
@@ -49,6 +51,7 @@ class GymServiceTest {
 
     @Test
     void doesNotSaveDuplicate() {
+        when(access.requireAdmin()).thenReturn(Mono.just(10L));
         when(gyms.existsByCityAndAddress("City", "Address")).thenReturn(Mono.just(true));
 
         StepVerifier.create(service.create(" Gym ", " City ", " Address ")).verifyError(ConflictException.class);

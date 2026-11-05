@@ -28,7 +28,7 @@ class InternalUserApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Снапшот пользователя содержит только id, активность и признак админа")
+    @DisplayName("Снапшот пользователя содержит только id, активность, признак админа и роль")
     void returnsSnapshot() {
         long id = users.save(User.register(marker + "@mail.ru", "hash")).getId();
 
@@ -38,6 +38,7 @@ class InternalUserApiIntegrationTest extends AbstractIntegrationTest {
                 .jsonPath("$.id").isEqualTo(id)
                 .jsonPath("$.active").isEqualTo(true)
                 .jsonPath("$.admin").isEqualTo(false)
+                .jsonPath("$.role").isEqualTo("USER")
                 .jsonPath("$.email").doesNotExist()
                 .jsonPath("$.password").doesNotExist();
     }

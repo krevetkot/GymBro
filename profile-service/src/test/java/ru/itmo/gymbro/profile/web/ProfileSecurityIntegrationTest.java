@@ -23,7 +23,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class ProfileSecurityIntegrationTest extends AbstractIntegrationTest {
 
-
     @Autowired
     private WebApplicationContext context;
 
@@ -90,10 +89,10 @@ class ProfileSecurityIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Внутренние эндпоинты доступны без токена")
+    @DisplayName("Внутренние эндпоинты доступны без токена: запрос доходит до сервиса, у смотрящего нет анкеты — 404")
     void internalEndpointsAreOpen() throws Exception {
         mvc.perform(get("/internal/v1/profiles/feed").param("viewerUserId", "1"))
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
     }
 
     private static MockHttpServletRequestBuilder request() {

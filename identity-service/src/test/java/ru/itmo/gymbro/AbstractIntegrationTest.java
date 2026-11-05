@@ -43,6 +43,7 @@ public abstract class AbstractIntegrationTest {
 
     @AfterEach
     void deleteTestUsers() {
+        jdbc.update("DELETE FROM certificates");
         jdbc.update("DELETE FROM users WHERE email <> 'admin@gymbro.local'");
     }
 }

@@ -1,6 +1,9 @@
 package ru.itmo.gymbro.catalog.model;
 
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 import jakarta.validation.constraints.NotBlank;
@@ -13,12 +16,16 @@ import java.util.Objects;
 
 @Table(name = "gym_requests")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@ToString(onlyExplicitlyIncluded = true)
 public class GymRequest {
 
     @Id
+    @ToString.Include
     private Long id;
 
     @Positive
+    @ToString.Include(name = "author")
     private long authorId;
 
     @NotBlank
@@ -34,6 +41,7 @@ public class GymRequest {
     private String address;
 
     @NotNull
+    @ToString.Include
     private RequestStatus status;
 
     @Positive
@@ -44,9 +52,6 @@ public class GymRequest {
 
     @NotNull
     private Instant createdAt;
-
-    protected GymRequest() {
-    }
 
     public GymRequest(Long id, long authorId, String name, String city, String address,
                       RequestStatus status, Long reviewedBy, Long gymId, Instant createdAt) {
@@ -129,10 +134,5 @@ public class GymRequest {
     @Override
     public int hashCode() {
         return Objects.hashCode(id);
-    }
-
-    @Override
-    public String toString() {
-        return "GymRequest{id=" + id + ", author=" + authorId + ", status=" + status + "}";
     }
 }

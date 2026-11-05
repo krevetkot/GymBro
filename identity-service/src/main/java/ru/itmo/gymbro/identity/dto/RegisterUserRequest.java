@@ -5,8 +5,9 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
+import ru.itmo.gymbro.identity.model.Role;
 
-@Schema(example = "{\"email\":\"alex@example.com\",\"password\":\"Training123!\"}")
+@Schema(example = "{\"email\":\"alex@example.com\",\"password\":\"Training123!\",\"role\":\"USER\"}")
 @Getter
 public class RegisterUserRequest {
 
@@ -18,4 +19,7 @@ public class RegisterUserRequest {
     @NotBlank
     @Size(min = 8, max = 72)
     private String password;
+
+    @Schema(description = "Роль нового пользователя: USER или ADMIN; по умолчанию USER")
+    private Role role;
 }

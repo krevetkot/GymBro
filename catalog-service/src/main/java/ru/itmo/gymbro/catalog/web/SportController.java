@@ -41,7 +41,8 @@ class SportController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Создать вид спорта")
+    @Operation(summary = "Создать вид спорта (только ADMIN)")
+    @ApiResponse(responseCode = "403", description = "Требуется активный администратор")
     @ApiResponse(responseCode = "201", description = "Вид спорта создан")
     @ApiResponse(responseCode = "409", description = "Такой вид спорта уже существует")
     Mono<SportResponse> create(@Valid @RequestBody SportWriteRequest request) {
@@ -62,7 +63,8 @@ class SportController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Удалить вид спорта")
+    @Operation(summary = "Удалить вид спорта (только ADMIN)")
+    @ApiResponse(responseCode = "403", description = "Требуется активный администратор")
     @ApiResponse(responseCode = "204", description = "Вид спорта удалён")
     @ApiResponse(responseCode = "404", description = "Вид спорта не найден")
     @ApiResponse(responseCode = "409", description = "Вид спорта указан в анкетах")

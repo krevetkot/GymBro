@@ -80,7 +80,7 @@ class RemoteUserDirectoryTest extends AbstractIntegrationTest {
     @DisplayName("Снапшот пользователя читается из ответа identity")
     void readsSnapshot() {
         IDENTITY.stubFor(get(urlEqualTo("/internal/v1/users/7"))
-                .willReturn(okJson("{\"id\":7,\"active\":true,\"admin\":true}")));
+                .willReturn(okJson("{\"id\":7,\"active\":true,\"admin\":true,\"role\":\"ADMIN\"}")));
 
         assertThat(directory.getSnapshot(7)).isEqualTo(new UserSnapshot(7, true, true));
     }

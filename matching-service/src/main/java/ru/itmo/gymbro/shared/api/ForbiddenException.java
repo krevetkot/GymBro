@@ -1,8 +1,7 @@
 package ru.itmo.gymbro.shared.api;
 
-public class ForbiddenException extends RuntimeException {
+import lombok.experimental.StandardException;
 
-    public ForbiddenException(String message) {
-        super(message);
-    }
+@StandardException
+public class ForbiddenException extends RuntimeException {
 }

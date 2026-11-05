@@ -50,7 +50,7 @@ class UserRepositoryTest extends AbstractIntegrationTest {
     @DisplayName("Роль и статус переживают сохранение")
     void storesRoleAndStatus() {
         User user = users.save(User.register("trainer@mail.ru", "hash"));
-        user.promoteToTrainer();
+        user.changeRole(Role.TRAINER);
         user.ban();
         users.save(user);
 
