@@ -10,6 +10,8 @@ import ru.itmo.gymbro.identity.model.Role;
 import ru.itmo.gymbro.identity.model.User;
 import ru.itmo.gymbro.identity.model.UserStatus;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class UserRepositoryTest extends AbstractIntegrationTest {
@@ -70,7 +72,7 @@ class UserRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Удаление мягкое: строка остаётся, но пользователь пропадает из поиска и попадает в недоступные")
+    @DisplayName("Удаление мягкое: строка остаётся, но пользователь пропадает из поиска и из активных")
     void softDeletesUser() {
         User user = users.save(User.register("temp@mail.ru", "hash"));
 
@@ -80,8 +82,26 @@ class UserRepositoryTest extends AbstractIntegrationTest {
         assertThat(users.findById(user.getId())).isPresent();
         assertThat(users.findByIdAndDeletedFalse(user.getId())).isEmpty();
         assertThat(users.findAllByDeletedFalse(PageRequest.of(0, 50)).getContent()).doesNotContain(user);
-        assertThat(users.findBannedIds()).contains(user.getId());
+        assertThat(users.findActiveIds(List.of(user.getId()))).isEmpty();
         assertThat(user.isActive()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Из переданных id активными считаются только существующие, не удалённые и не заблокированные")
+    void findsActiveIdsAmongGiven() {
+        long active = users.save(User.register("active@mail.ru", "hash")).getId();
+        User bannedUser = User.register("banned@mail.ru", "hash");
+        bannedUser.ban();
+        long banned = users.save(bannedUser).getId();
+        User deletedUser = User.register("deleted@mail.ru", "hash");
+        deletedUser.delete();
+        long deleted = users.save(deletedUser).getId();
+        long otherActive = users.save(User.register("other@mail.ru", "hash")).getId();
+
+        assertThat(users.findActiveIds(List.of(active, banned, deleted, Long.MAX_VALUE)))
+                .containsExactly(active);
+        assertThat(users.findActiveIds(List.of(banned, deleted))).isEmpty();
+        assertThat(users.findActiveIds(List.of(active))).doesNotContain(otherActive);
     }
 
     @Test

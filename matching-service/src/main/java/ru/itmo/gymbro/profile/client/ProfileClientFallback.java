@@ -1,12 +1,11 @@
 package ru.itmo.gymbro.profile.client;
 
 import feign.FeignException;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
-import ru.itmo.gymbro.profile.api.FeedCandidates;
-
-import java.util.List;
+import ru.itmo.gymbro.shared.api.DependencyUnavailableException;
 
 @Slf4j
 @Component
@@ -18,8 +17,10 @@ class ProfileClientFallback implements FallbackFactory<ProfileClient> {
             if (cause instanceof FeignException.FeignClientException clientError) {
                 throw clientError;
             }
-            log.warn("Profile service unavailable, returning empty feed for user {}: {}", viewerUserId, cause.toString());
-            return new FeedCandidates(List.of(), page, size, false);
+            log.warn("Profile service unavailable, feed for user {} cannot be built: {}", viewerUserId, cause.toString());
+            throw new DependencyUnavailableException(cause instanceof CallNotPermittedException
+                    ? "Сервис анкет временно недоступен: после серии ошибок запросы к нему приостановлены"
+                    : "Сервис анкет временно недоступен, лента не может быть показана", cause);
         };
     }
 }

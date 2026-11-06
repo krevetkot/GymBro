@@ -119,13 +119,13 @@ class FeedApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Страницы ленты идут подряд без пропусков")
+    @DisplayName("Страницы ленты идут подряд без пропусков; недоступные убираются из страницы, и она может быть короче")
     void pagesFollowEachOther() throws Exception {
-        List<Long> firstFour = new ArrayList<>(page(viewer, 0, 2));
-        firstFour.addAll(page(viewer, 1, 2));
+        List<Long> firstPages = new ArrayList<>(page(viewer, 0, 2));
+        firstPages.addAll(page(viewer, 1, 2));
 
-        assertThat(firstFour).hasSize(4).doesNotHaveDuplicates();
-        assertThat(page(viewer, 0, 50)).startsWith(firstFour.toArray(Long[]::new));
+        assertThat(firstPages).isNotEmpty().doesNotHaveDuplicates().doesNotContain(banned);
+        assertThat(page(viewer, 0, 50)).startsWith(firstPages.toArray(Long[]::new));
     }
 
     private long userWithProfile() {

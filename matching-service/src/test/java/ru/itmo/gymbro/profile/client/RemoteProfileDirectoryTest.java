@@ -14,6 +14,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import ru.itmo.gymbro.AbstractIntegrationTest;
 import ru.itmo.gymbro.profile.api.FeedCandidates;
 import ru.itmo.gymbro.profile.api.ProfileSnapshot;
+import ru.itmo.gymbro.shared.api.DependencyUnavailableException;
 import ru.itmo.gymbro.shared.api.NotFoundException;
 
 import java.io.IOException;
@@ -112,20 +113,22 @@ class RemoteProfileDirectoryTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("5xx от сервиса анкет — fallback отдаёт пустую ленту вместо ошибки")
-    void fallsBackToEmptyFeedOnServerError() {
+    @DisplayName("5xx от сервиса анкет — fallback сообщает о недоступности (503), а не отдаёт пустую ленту")
+    void reportsUnavailableOnServerError() {
         PROFILES.stubFor(get(urlPathEqualTo(FEED)).willReturn(problem(500)));
 
-        assertThat(directory.findFeedCandidates(7, Set.of(), 2, 20))
-                .isEqualTo(new FeedCandidates(List.of(), 2, 20, false));
+        assertThatThrownBy(() -> directory.findFeedCandidates(7, Set.of(), 2, 20))
+                .isInstanceOf(DependencyUnavailableException.class)
+                .hasMessage("Сервис анкет временно недоступен, лента не может быть показана");
     }
 
     @Test
-    @DisplayName("Сервис анкет не ответил вовремя — fallback отдаёт пустую ленту")
-    void fallsBackToEmptyFeedOnTimeout() {
+    @DisplayName("Сервис анкет не ответил вовремя — 503")
+    void reportsUnavailableOnTimeout() {
         PROFILES.stubFor(get(urlPathEqualTo(FEED)).willReturn(okJson(EMPTY_PAGE).withFixedDelay(5_000)));
 
-        assertThat(directory.findFeedCandidates(7, Set.of(), 0, 20).items()).isEmpty();
+        assertThatThrownBy(() -> directory.findFeedCandidates(7, Set.of(), 0, 20))
+                .isInstanceOf(DependencyUnavailableException.class);
     }
 
     @Test
@@ -133,13 +136,13 @@ class RemoteProfileDirectoryTest extends AbstractIntegrationTest {
     void opensAfterFailuresAndStopsCallingProfiles() {
         PROFILES.stubFor(get(urlPathEqualTo(FEED)).willReturn(problem(503)));
 
-        for (int call = 0; call < 5; call++) {
-            directory.findFeedCandidates(7, Set.of(), 0, 20);
-        }
+        failFiveTimes();
         assertThat(feedBreaker().getState()).isEqualTo(CircuitBreaker.State.OPEN);
 
         PROFILES.resetRequests();
-        assertThat(directory.findFeedCandidates(7, Set.of(), 0, 20).items()).isEmpty();
+        assertThatThrownBy(() -> directory.findFeedCandidates(7, Set.of(), 0, 20))
+                .isInstanceOf(DependencyUnavailableException.class)
+                .hasMessageContaining("запросы к нему приостановлены");
         PROFILES.verify(0, getRequestedFor(urlPathEqualTo(FEED)));
     }
 
@@ -159,9 +162,7 @@ class RemoteProfileDirectoryTest extends AbstractIntegrationTest {
     @DisplayName("Сервис анкет поднялся: после паузы автомат пропускает пробные запросы и замыкается")
     void closesAgainWhenProfilesRecover() throws InterruptedException {
         PROFILES.stubFor(get(urlPathEqualTo(FEED)).willReturn(problem(503)));
-        for (int call = 0; call < 5; call++) {
-            directory.findFeedCandidates(7, Set.of(), 0, 20);
-        }
+        failFiveTimes();
         assertThat(feedBreaker().getState()).isEqualTo(CircuitBreaker.State.OPEN);
 
         PROFILES.stubFor(get(urlPathEqualTo(FEED)).willReturn(okJson(EMPTY_PAGE)));
@@ -171,6 +172,13 @@ class RemoteProfileDirectoryTest extends AbstractIntegrationTest {
         directory.findFeedCandidates(7, Set.of(), 0, 20);
         directory.findFeedCandidates(7, Set.of(), 0, 20);
         assertThat(feedBreaker().getState()).isEqualTo(CircuitBreaker.State.CLOSED);
+    }
+
+    private void failFiveTimes() {
+        for (int call = 0; call < 5; call++) {
+            assertThatThrownBy(() -> directory.findFeedCandidates(7, Set.of(), 0, 20))
+                    .isInstanceOf(DependencyUnavailableException.class);
+        }
     }
 
     private CircuitBreaker feedBreaker() {
