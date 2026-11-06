@@ -7,7 +7,11 @@ spring:
     active: dev
 
   config:
-    import: configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+    # .env нужен при запуске из IDE; в Docker его нет, значения передаёт docker-compose
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
+      - configserver:${CONFIG_SERVER_URL:http://localhost:8888}
 
   cloud:
     config:

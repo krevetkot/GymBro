@@ -1,7 +1,7 @@
 spring:
 
   r2dbc:
-    url: ${CATALOG_R2DBC_URL:r2dbc:postgresql://localhost:5435/gymbro_catalog}
+    url: ${CATALOG_R2DBC_URL:r2dbc:postgresql://localhost:${CATALOG_DB_PORT:5435}/${CATALOG_DB_NAME:gymbro_catalog}}
     username: ${CATALOG_DB_USER:gymbro_catalog}
     password: ${CATALOG_DB_PASSWORD:gymbro_catalog}
     pool:
@@ -9,7 +9,7 @@ spring:
 
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
-    url: ${CATALOG_DB_URL:jdbc:postgresql://localhost:5435/gymbro_catalog}
+    url: ${CATALOG_DB_URL:jdbc:postgresql://localhost:${CATALOG_DB_PORT:5435}/${CATALOG_DB_NAME:gymbro_catalog}}
     user: ${CATALOG_DB_USER:gymbro_catalog}
     password: ${CATALOG_DB_PASSWORD:gymbro_catalog}
 

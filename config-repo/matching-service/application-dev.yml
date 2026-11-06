@@ -1,7 +1,7 @@
 spring:
 
   datasource:
-    url: ${MATCHING_DB_URL:jdbc:postgresql://localhost:5437/gymbro_matching}
+    url: ${MATCHING_DB_URL:jdbc:postgresql://localhost:${MATCHING_DB_PORT:5437}/${MATCHING_DB_NAME:gymbro_matching}}
     username: ${MATCHING_DB_USER:gymbro_matching}
     password: ${MATCHING_DB_PASSWORD:gymbro_matching}
     hikari:

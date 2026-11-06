@@ -3,7 +3,7 @@ server:
 
 spring:
   datasource:
-    url: ${IDENTITY_DB_URL:jdbc:postgresql://localhost:5434/gymbro_identity}
+    url: ${IDENTITY_DB_URL:jdbc:postgresql://localhost:${IDENTITY_DB_PORT:5434}/${IDENTITY_DB_NAME:gymbro_identity}}
     username: ${IDENTITY_DB_USER:gymbro_identity}
     password: ${IDENTITY_DB_PASSWORD:gymbro_identity}
     hikari:

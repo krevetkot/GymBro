@@ -1,7 +1,7 @@
 spring:
 
   datasource:
-    url: ${PROFILE_DB_URL:jdbc:postgresql://localhost:5436/gymbro_profile}
+    url: ${PROFILE_DB_URL:jdbc:postgresql://localhost:${PROFILE_DB_PORT:5436}/${PROFILE_DB_NAME:gymbro_profile}}
     username: ${PROFILE_DB_USER:gymbro_profile}
     password: ${PROFILE_DB_PASSWORD:gymbro_profile}
     hikari:

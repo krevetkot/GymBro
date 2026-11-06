@@ -286,9 +286,15 @@ docker compose up --build -d
 | Eureka (зарегистрированные сервисы) | http://localhost:8761 |
 | Базы identity / catalog / profile / matching | `localhost:5434` / `5435` / `5436` / `5437` |
 
-Перед первым запуском скопируйте `.env.example` в `.env`. Ключ подписи токенов
-`JWT_SECRET_BASE64` обязателен, без него compose не стартует; свой ключ можно сгенерировать
-командой `openssl rand -base64 32`. Как получить токен — в разделе «Авторизация и роли».
+Все настройки окружения лежат в `.env` в корне проекта (в git его нет). Перед первым запуском
+скопируйте шаблон `.env.example` в `.env` и впишите ключ подписи токенов `JWT_SECRET_BASE64`:
+без него compose не стартует. Ключ можно сгенерировать командой `openssl rand -base64 32`.
+Как получить токен — в разделе «Авторизация и роли».
+
+Тот же `.env` читают сервисы, запущенные из IDE (конфигурации в `.run/`): identity, catalog,
+profile и matching подключают его через `spring.config.import: optional:file:.env[.properties]`.
+Поэтому секрет, логины, пароли и порты баз берутся из одного места и в Docker, и в IDE.
+В Docker-образ `.env` не попадает, там значения передаёт docker-compose.
 
 Проверка Circuit Breaker: `docker compose stop profile-service`. Лента
 (`GET /api/v1/feed`) вернёт пустую страницу, а `GET /api/v1/profiles/{id}` — 503 из fallback
