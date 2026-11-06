@@ -23,7 +23,10 @@ class RemoteUserDirectory implements UserDirectory {
     }
 
     @Override
-    public Set<Long> bannedUserIds() {
-        return call(SERVICE, "Список недоступных пользователей не найден", client::bannedUserIds);
+    public Set<Long> activeUserIds(Set<Long> ids) {
+        if (ids.isEmpty()) {
+            return Set.of();
+        }
+        return call(SERVICE, "Список активных пользователей не найден", () -> client.activeUserIds(ids));
     }
 }

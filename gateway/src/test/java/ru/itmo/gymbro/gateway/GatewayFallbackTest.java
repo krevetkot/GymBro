@@ -40,7 +40,7 @@ class GatewayFallbackTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"/internal/v1/users/banned-ids", "/v3/api-docs/unknown"})
+    @CsvSource({"/internal/v1/users/active-ids", "/v3/api-docs/unknown"})
     @DisplayName("Внутренние пути наружу не маршрутизируются — 404, а не fallback")
     void doesNotRouteInternalPaths(String path) {
         client.get().uri(path).exchange().expectStatus().isNotFound();

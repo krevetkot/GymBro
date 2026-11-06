@@ -13,7 +13,4 @@ public interface IdentityClient {
 
     @GetMapping("/internal/v1/users/{id}")
     Mono<UserSnapshot> getSnapshot(@PathVariable("id") long id);
-
-    @GetMapping("/internal/v1/users/banned-ids")
-    Mono<Set<Long>> bannedUserIds();
 }

@@ -86,14 +86,6 @@ class RemoteUserDirectoryTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Список недоступных пользователей читается из ответа identity")
-    void readsBannedIds() {
-        IDENTITY.stubFor(get(urlEqualTo("/internal/v1/users/banned-ids")).willReturn(okJson("[3,5]")));
-
-        assertThat(directory.bannedUserIds()).containsExactlyInAnyOrder(3L, 5L);
-    }
-
-    @Test
     @DisplayName("404 от identity — пользователь не найден")
     void mapsNotFound() {
         IDENTITY.stubFor(get(urlEqualTo("/internal/v1/users/7")).willReturn(problem(404)));

@@ -22,9 +22,4 @@ class RemoteUserDirectory implements UserDirectory {
     public Mono<UserSnapshot> getSnapshot(long id) {
         return call(SERVICE, "Пользователь " + id + " не найден", client.getSnapshot(id));
     }
-
-    @Override
-    public Mono<Set<Long>> bannedUserIds() {
-        return call(SERVICE, "Список недоступных пользователей не найден", client.bannedUserIds());
-    }
 }

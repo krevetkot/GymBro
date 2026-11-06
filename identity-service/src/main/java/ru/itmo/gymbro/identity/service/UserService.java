@@ -6,6 +6,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.itmo.gymbro.identity.api.UserDirectory;
 import ru.itmo.gymbro.identity.api.UserSnapshot;
@@ -84,8 +85,11 @@ class UserService implements UserUseCases, UserDirectory, CurrentUserAccess {
     }
 
     @Override
-    public Mono<Set<Long>> bannedUserIds() {
-        return jpa.read(() -> Set.copyOf(users.findBannedIds()));
+    public Flux<Long> activeUserIds(Set<Long> ids) {
+        if (ids.isEmpty()) {
+            return Flux.empty();
+        }
+        return jpa.read(() -> users.findActiveIds(ids)).flatMapMany(Flux::fromIterable);
     }
 
     @Override

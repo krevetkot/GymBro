@@ -25,7 +25,9 @@ import ru.itmo.gymbro.shared.api.CurrentUserAccess;
 import ru.itmo.gymbro.shared.api.NotFoundException;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -44,10 +46,15 @@ class MatchingService implements MatchingUseCases {
     public Slice<ProfileSnapshot> nextFeedCards(Pageable pageable) {
         long viewerId = access.requireActiveUser();
         Set<Long> excluded = new HashSet<>(likes.findLikedUserIds(viewerId));
-        excluded.addAll(users.bannedUserIds());
         FeedCandidates candidates = profiles.findFeedCandidates(viewerId, excluded,
                 pageable.getPageNumber(), pageable.getPageSize());
-        return new SliceImpl<>(candidates.items(), PageRequest.of(candidates.page(), candidates.size()),
+        Set<Long> active = users.activeUserIds(candidates.items().stream()
+                .map(ProfileSnapshot::userId)
+                .collect(Collectors.toSet()));
+        List<ProfileSnapshot> visible = candidates.items().stream()
+                .filter(candidate -> active.contains(candidate.userId()))
+                .toList();
+        return new SliceImpl<>(visible, PageRequest.of(candidates.page(), candidates.size()),
                 candidates.hasNext());
     }
 

@@ -10,9 +10,6 @@ import ru.itmo.gymbro.identity.repository.UserRepository;
 
 import java.util.UUID;
 
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.not;
-
 class InternalUserApiIntegrationTest extends AbstractIntegrationTest {
 
     private static final String INTERNAL_USERS = "/internal/v1/users";
@@ -59,8 +56,8 @@ class InternalUserApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Список недоступных содержит забаненных и удалённых, но не активных")
-    void listsBannedIds() {
+    @DisplayName("Из переданных id возвращаются только активные: без забаненных, удалённых и несуществующих")
+    void filtersActiveIds() {
         User bannedUser = User.register(marker + "-banned@mail.ru", "hash");
         bannedUser.ban();
         long banned = users.save(bannedUser).getId();
@@ -69,11 +66,23 @@ class InternalUserApiIntegrationTest extends AbstractIntegrationTest {
         long deleted = users.save(deletedUser).getId();
         long active = users.save(User.register(marker + "-active@mail.ru", "hash")).getId();
 
-        client.get().uri(INTERNAL_USERS + "/banned-ids").exchange()
+        client.get().uri(INTERNAL_USERS + "/active-ids?ids={a},{b},{c},{d}", active, banned, deleted, Long.MAX_VALUE)
+                .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$").value(hasItem((int) banned))
-                .jsonPath("$").value(hasItem((int) deleted))
-                .jsonPath("$").value(not(hasItem((int) active)));
+                .jsonPath("$.length()").isEqualTo(1)
+                .jsonPath("$[0]").isEqualTo(active);
+        client.get().uri(INTERNAL_USERS + "/active-ids").exchange()
+                .expectStatus().isOk()
+                .expectBody().jsonPath("$.length()").isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("Больше 50 id за запрос — 400")
+    void limitsActiveIdsRequest() {
+        String ids = java.util.stream.LongStream.rangeClosed(1, 51)
+                .mapToObj(Long::toString).collect(java.util.stream.Collectors.joining(","));
+
+        client.get().uri(INTERNAL_USERS + "/active-ids?ids=" + ids).exchange().expectStatus().isBadRequest();
     }
 }

@@ -46,10 +46,9 @@ public class TestUsers implements UserDirectory {
     }
 
     @Override
-    public Set<Long> bannedUserIds() {
-        return users.values().stream()
-                .filter(user -> !user.active())
-                .map(UserSnapshot::id)
+    public Set<Long> activeUserIds(Set<Long> ids) {
+        return ids.stream()
+                .filter(id -> users.containsKey(id) && users.get(id).active())
                 .collect(Collectors.toUnmodifiableSet());
     }
 

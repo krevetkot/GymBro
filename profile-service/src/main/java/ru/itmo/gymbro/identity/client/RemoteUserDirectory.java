@@ -21,9 +21,4 @@ class RemoteUserDirectory implements UserDirectory {
     public UserSnapshot getSnapshot(long id) {
         return call(SERVICE, "Пользователь " + id + " не найден", () -> client.getSnapshot(id));
     }
-
-    @Override
-    public Set<Long> bannedUserIds() {
-        return call(SERVICE, "Список недоступных пользователей не найден", client::bannedUserIds);
-    }
 }

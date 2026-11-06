@@ -6,5 +6,5 @@ public interface UserDirectory {
 
     public UserSnapshot getSnapshot(long id);
 
-    public Set<Long> bannedUserIds();
+    public Set<Long> activeUserIds(Set<Long> ids);
 }

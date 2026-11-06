@@ -7,6 +7,4 @@ import java.util.Set;
 public interface UserDirectory {
 
     public Mono<UserSnapshot> getSnapshot(long id);
-
-    public Mono<Set<Long>> bannedUserIds();
 }

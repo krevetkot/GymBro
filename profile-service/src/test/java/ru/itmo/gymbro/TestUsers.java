@@ -45,14 +45,6 @@ public class TestUsers implements UserDirectory {
         return user;
     }
 
-    @Override
-    public Set<Long> bannedUserIds() {
-        return users.values().stream()
-                .filter(user -> !user.active())
-                .map(UserSnapshot::id)
-                .collect(Collectors.toUnmodifiableSet());
-    }
-
     private long add(boolean active, boolean admin) {
         long id = ids.incrementAndGet();
         users.put(id, new UserSnapshot(id, active, admin));

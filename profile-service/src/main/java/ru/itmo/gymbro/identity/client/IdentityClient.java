@@ -12,7 +12,4 @@ public interface IdentityClient {
 
     @GetMapping("/internal/v1/users/{id}")
     UserSnapshot getSnapshot(@PathVariable("id") long id);
-
-    @GetMapping("/internal/v1/users/banned-ids")
-    Set<Long> bannedUserIds();
 }

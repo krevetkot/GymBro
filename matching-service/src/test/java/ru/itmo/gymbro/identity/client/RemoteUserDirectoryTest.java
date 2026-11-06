@@ -26,6 +26,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -86,11 +87,13 @@ class RemoteUserDirectoryTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Список недоступных пользователей читается из ответа identity")
-    void readsBannedIds() {
-        IDENTITY.stubFor(get(urlEqualTo("/internal/v1/users/banned-ids")).willReturn(okJson("[3,5]")));
+    @DisplayName("Активные среди кандидатов читаются одним запросом; пустой список — без запроса")
+    void readsActiveIds() {
+        IDENTITY.stubFor(get(urlPathEqualTo("/internal/v1/users/active-ids")).willReturn(okJson("[3]")));
 
-        assertThat(directory.bannedUserIds()).containsExactlyInAnyOrder(3L, 5L);
+        assertThat(directory.activeUserIds(Set.of(3L, 5L))).containsExactly(3L);
+        assertThat(directory.activeUserIds(Set.of())).isEmpty();
+        IDENTITY.verify(1, getRequestedFor(urlPathEqualTo("/internal/v1/users/active-ids")));
     }
 
     @Test
